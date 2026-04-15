@@ -30,6 +30,23 @@ workflows:
           pod install
           cd ..
 
+      - name: Patch gRPC for Xcode 16
+        script: |
+          ruby - <<'RUBY'
+          file = File.join(Dir.pwd, 'ios', 'Pods', 'gRPC-Core', 'src', 'core', 'lib', 'promise', 'detail', 'basic_seq.h')
+          abort("gRPC basic_seq.h not found at #{file}") unless File.exist?(file)
+
+          contents = File.read(file)
+          patched = contents.gsub(/Traits::template\s+CallSeqFactory/, 'Traits::CallSeqFactory')
+
+          if contents == patched
+            puts 'No gRPC patch change was needed'
+          else
+            File.write(file, patched)
+            puts 'Patched gRPC basic_seq.h for Xcode 16 compatibility'
+          end
+          RUBY
+
       - name: Apply provisioning profiles
         script: |
           xcode-project use-profiles
