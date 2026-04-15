@@ -42,6 +42,17 @@ workflows:
             'FLTTaskStateChannelStreamHandler.h'
           ))
 
+          storage_impls = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_storage-*',
+            'ios',
+            'Classes',
+            'FLTTaskStateChannelStreamHandler.m'
+          ))
+
           messaging_headers = Dir.glob(File.join(
             home,
             '.pub-cache',
@@ -64,7 +75,7 @@ workflows:
             'FLTFirebaseMessagingPlugin.m'
           ))
 
-          abort('No FlutterFire headers found to patch') if storage_headers.empty? && messaging_headers.empty? && messaging_impls.empty?
+          abort('No FlutterFire headers found to patch') if storage_headers.empty? && storage_impls.empty? && messaging_headers.empty? && messaging_impls.empty?
 
           storage_headers.each do |file|
             FileUtils.chmod('u+w', file)
@@ -79,6 +90,26 @@ workflows:
               puts "Patched firebase_storage header: #{file}"
             else
               puts "No firebase_storage patch needed: #{file}"
+            end
+          end
+
+          storage_impls.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+
+            patched = contents
+            unless patched.include?('#import <FirebaseStorage/FirebaseStorage-Swift.h>')
+              patched = patched.sub(
+                '#import <FirebaseStorage/FIRStorageTypedefs.h>',
+                "#import <FirebaseStorage/FirebaseStorage-Swift.h>\n#import <FirebaseStorage/FIRStorageTypedefs.h>"
+              )
+            end
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_storage implementation: #{file}"
+            else
+              puts "No firebase_storage implementation patch needed: #{file}"
             end
           end
 
