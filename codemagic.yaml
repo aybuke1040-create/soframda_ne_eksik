@@ -53,7 +53,18 @@ workflows:
             'FLTFirebaseMessagingPlugin.h'
           ))
 
-          abort('No FlutterFire headers found to patch') if storage_headers.empty? && messaging_headers.empty?
+          messaging_impls = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_messaging-*',
+            'ios',
+            'Classes',
+            'FLTFirebaseMessagingPlugin.m'
+          ))
+
+          abort('No FlutterFire headers found to patch') if storage_headers.empty? && messaging_headers.empty? && messaging_impls.empty?
 
           storage_headers.each do |file|
             FileUtils.chmod('u+w', file)
@@ -84,6 +95,26 @@ workflows:
               puts "Patched firebase_messaging header: #{file}"
             else
               puts "No firebase_messaging patch needed: #{file}"
+            end
+          end
+
+          messaging_impls.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+
+            patched = contents
+            unless patched.include?('#import <FirebaseAuth/FirebaseAuth.h>')
+              patched = patched.sub(
+                '#import "FLTFirebaseMessagingPlugin.h"',
+                "#import \"FLTFirebaseMessagingPlugin.h\"\n#import <FirebaseAuth/FirebaseAuth.h>"
+              )
+            end
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_messaging implementation: #{file}"
+            else
+              puts "No firebase_messaging implementation patch needed: #{file}"
             end
           end
           RUBY
