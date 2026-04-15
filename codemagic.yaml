@@ -35,20 +35,31 @@ workflows:
           ruby - <<'RUBY'
           require 'fileutils'
 
-          file = File.join(Dir.pwd, 'ios', 'Pods', 'gRPC-Core', 'src', 'core', 'lib', 'promise', 'detail', 'basic_seq.h')
-          abort("gRPC basic_seq.h not found at #{file}") unless File.exist?(file)
+          files = [
+            File.join(Dir.pwd, 'ios', 'Pods', 'gRPC-Core', 'src', 'core', 'lib', 'promise', 'detail', 'basic_seq.h'),
+            File.join(Dir.pwd, 'ios', 'Pods', 'gRPC-C++', 'src', 'core', 'lib', 'promise', 'detail', 'basic_seq.h')
+          ]
 
-          FileUtils.chmod('u+w', file)
+          patched_any = false
 
-          contents = File.read(file)
-          patched = contents.gsub(/Traits::template\s+CallSeqFactory/, 'Traits::CallSeqFactory')
+          files.each do |file|
+            next unless File.exist?(file)
 
-          if contents == patched
-            puts 'No gRPC patch change was needed'
-          else
-            File.write(file, patched)
-            puts 'Patched gRPC basic_seq.h for Xcode 16 compatibility'
+            FileUtils.chmod('u+w', file)
+
+            contents = File.read(file)
+            patched = contents.gsub(/Traits::template\s+CallSeqFactory/, 'Traits::CallSeqFactory')
+
+            if contents != patched
+              File.write(file, patched)
+              patched_any = true
+              puts "Patched #{file} for Xcode 16 compatibility"
+            else
+              puts "No gRPC patch change was needed for #{file}"
+            end
           end
+
+          abort('No gRPC basic_seq.h files were found to patch') unless files.any? { |file| File.exist?(file) }
           RUBY
 
       - name: Apply provisioning profiles
