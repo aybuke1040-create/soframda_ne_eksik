@@ -24,6 +24,70 @@ workflows:
         script: |
           flutter pub get
 
+      - name: Patch FlutterFire headers for modular Firebase imports
+        script: |
+          ruby - <<'RUBY'
+          require 'fileutils'
+
+          home = Dir.home
+
+          storage_headers = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_storage-*',
+            'ios',
+            'Classes',
+            'FLTTaskStateChannelStreamHandler.h'
+          ))
+
+          messaging_headers = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_messaging-*',
+            'ios',
+            'Classes',
+            'FLTFirebaseMessagingPlugin.h'
+          ))
+
+          abort('No FlutterFire headers found to patch') if storage_headers.empty? && messaging_headers.empty?
+
+          storage_headers.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+            patched = contents.gsub(
+              '#import <Firebase/Firebase.h>',
+              "#import <FirebaseCore/FirebaseCore.h>\n#import <FirebaseStorage/FirebaseStorage.h>"
+            )
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_storage header: #{file}"
+            else
+              puts "No firebase_storage patch needed: #{file}"
+            end
+          end
+
+          messaging_headers.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+            patched = contents.gsub(
+              '#import <Firebase/Firebase.h>',
+              "#import <FirebaseCore/FirebaseCore.h>\n#import <FirebaseMessaging/FirebaseMessaging.h>"
+            )
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_messaging header: #{file}"
+            else
+              puts "No firebase_messaging patch needed: #{file}"
+            end
+          end
+          RUBY
+
       - name: Install CocoaPods dependencies
         script: |
           cd ios
