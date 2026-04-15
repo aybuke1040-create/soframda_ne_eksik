@@ -1,0 +1,54 @@
+workflows:
+  ios-testflight:
+    name: Ben Yaparim iOS TestFlight
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+
+    integrations:
+      app_store_connect: codemagic-app-store-connect
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.benyaparim.app
+      vars:
+        BUNDLE_ID: "com.benyaparim.app"
+        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+
+    scripts:
+      - name: Flutter pub get
+        script: |
+          flutter pub get
+
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Apply provisioning profiles
+        script: |
+          xcode-project use-profiles
+
+      - name: Build iOS IPA
+        script: |
+          flutter build ipa \
+            --release \
+            --build-number=$CM_BUILD_ID
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+      email:
+        recipients:
+          - destek@benyaparimci.com
