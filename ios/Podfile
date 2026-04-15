@@ -57,4 +57,23 @@ post_install do |installer|
       end
     end
   end
+
+  grpc_basic_seq = File.join(
+    installer.sandbox.root.to_s,
+    'gRPC-Core',
+    'src/core/lib/promise/detail/basic_seq.h'
+  )
+
+  if File.exist?(grpc_basic_seq)
+    contents = File.read(grpc_basic_seq)
+    patched = contents.gsub(
+      'Traits::template CallSeqFactory(f_, *cur_, std::move(arg));',
+      'Traits::CallSeqFactory(f_, *cur_, std::move(arg));'
+    )
+
+    if contents != patched
+      File.open(grpc_basic_seq, 'w') { |file| file.write(patched) }
+      puts 'Patched gRPC-Core basic_seq.h for Xcode 16 compatibility'
+    end
+  end
 end
