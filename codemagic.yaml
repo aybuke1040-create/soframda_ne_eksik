@@ -33,8 +33,12 @@ workflows:
       - name: Patch gRPC for Xcode 16
         script: |
           ruby - <<'RUBY'
+          require 'fileutils'
+
           file = File.join(Dir.pwd, 'ios', 'Pods', 'gRPC-Core', 'src', 'core', 'lib', 'promise', 'detail', 'basic_seq.h')
           abort("gRPC basic_seq.h not found at #{file}") unless File.exist?(file)
+
+          FileUtils.chmod('u+w', file)
 
           contents = File.read(file)
           patched = contents.gsub(/Traits::template\s+CallSeqFactory/, 'Traits::CallSeqFactory')
