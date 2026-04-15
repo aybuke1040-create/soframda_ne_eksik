@@ -59,8 +59,8 @@ workflows:
             FileUtils.chmod('u+w', file)
             contents = File.read(file)
             patched = contents.gsub(
-              '#import <Firebase/Firebase.h>',
-              "#import <FirebaseCore/FirebaseCore.h>\n#import <FirebaseStorage/FirebaseStorage.h>"
+              "#import <Firebase/Firebase.h>\n\n#import <Foundation/Foundation.h>",
+              "@class FIRStorageObservableTask;\n\n#import <Foundation/Foundation.h>"
             )
 
             if contents != patched
