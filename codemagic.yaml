@@ -224,7 +224,8 @@ workflows:
         script: |
           flutter build ipa \
             --release \
-            --build-number=$CM_BUILD_ID
+            --build-number=$CM_BUILD_ID \
+            --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
