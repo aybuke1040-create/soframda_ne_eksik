@@ -28,7 +28,7 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await FirebaseMessaging.instance.requestPermission();
 
-  const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const android = AndroidInitializationSettings('ic_notification');
   const settings = InitializationSettings(android: android);
   await flutterLocalNotificationsPlugin.initialize(settings);
 
@@ -111,6 +111,7 @@ class _MyAppState extends State<MyApp> {
             'channel_name',
             importance: Importance.max,
             priority: Priority.high,
+            icon: 'ic_notification',
           ),
         ),
       );

@@ -40,6 +40,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.4
 
 dependency_overrides:
   path_provider_foundation: 2.5.1
@@ -52,4 +53,11 @@ flutter:
     - assets/images/food_placeholder.png
     - assets/images/foods/
     - assets/images/request_ideas/
+
+flutter_launcher_icons:
+  image_path: "assets/images/ben_yaparim_logo.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 21
 
