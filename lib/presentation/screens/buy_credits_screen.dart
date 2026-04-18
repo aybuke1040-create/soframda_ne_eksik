@@ -450,7 +450,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
         children: [
           buildPack(
             productId: 'credits_50',
-            title: '50 Kredi - 19,99 TL',
+            title: '50 Kredi - 49,99 TL',
             subtitle: context.t(
               'Hızlı mesajlaşma ve teklif akışları için ideal başlangıç paketi.',
               'A great starter pack for messaging and offers.',
@@ -459,7 +459,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
           ),
           buildPack(
             productId: 'credits_120',
-            title: '120 Kredi - 39,99 TL',
+            title: '120 Kredi - 79,99 TL',
             subtitle: context.t(
               'Daha aktif kullanım için avantajlı orta paket.',
               'A strong mid pack for more active usage.',
@@ -468,7 +468,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
           ),
           buildPack(
             productId: 'credits_300',
-            title: '300 Kredi - 79,99 TL',
+            title: '300 Kredi - 149,99 TL',
             subtitle: context.t(
               'Yoğun kullanım için en güçlü kredi paketi.',
               'The strongest credit pack for frequent use.',

@@ -113,15 +113,15 @@ class PaywallService {
                       Row(
                         children: [
                           Expanded(
-                            child: _quickPackButton(context, '50 Kredi'),
+                            child: _quickPackButton(context, '50 Kredi\n49,99 TL'),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _quickPackButton(context, '120 Kredi'),
+                            child: _quickPackButton(context, '120 Kredi\n79,99 TL'),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: _quickPackButton(context, '300 Kredi'),
+                            child: _quickPackButton(context, '300 Kredi\n149,99 TL'),
                           ),
                         ],
                       ),
