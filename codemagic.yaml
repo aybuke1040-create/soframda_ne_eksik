@@ -1,7 +1,221 @@
 workflows:
+  ios-preview-build:
+    name: Ben Yaparim iOS Preview Build
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: Flutter pub get
+        script: |
+          flutter pub get
+
+      - name: Patch FlutterFire headers for modular Firebase imports
+        script: |
+          ruby - <<'RUBY'
+          require 'fileutils'
+
+          home = Dir.home
+
+          storage_headers = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_storage-*',
+            'ios',
+            'Classes',
+            'FLTTaskStateChannelStreamHandler.h'
+          ))
+
+          storage_impls = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_storage-*',
+            'ios',
+            'Classes',
+            'FLTTaskStateChannelStreamHandler.m'
+          ))
+
+          messaging_headers = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_messaging-*',
+            'ios',
+            'Classes',
+            'FLTFirebaseMessagingPlugin.h'
+          ))
+
+          messaging_impls = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_messaging-*',
+            'ios',
+            'Classes',
+            'FLTFirebaseMessagingPlugin.m'
+          ))
+
+          auth_headers = Dir.glob(File.join(
+            home,
+            '.pub-cache',
+            'hosted',
+            'pub.dev',
+            'firebase_auth-*',
+            'ios',
+            'Classes',
+            '**',
+            '*.h'
+          ))
+
+          abort('No FlutterFire headers found to patch') if storage_headers.empty? && storage_impls.empty? && messaging_headers.empty? && messaging_impls.empty? && auth_headers.empty?
+
+          storage_headers.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+            patched = contents.gsub(
+              "#import <Firebase/Firebase.h>\n\n#import <Foundation/Foundation.h>",
+              "@class FIRStorageObservableTask;\n\n#import <Foundation/Foundation.h>"
+            )
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_storage header: #{file}"
+            else
+              puts "No firebase_storage patch needed: #{file}"
+            end
+          end
+
+          storage_impls.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+
+            patched = contents
+            unless patched.include?('#import <FirebaseStorage/FirebaseStorage-Swift.h>')
+              patched = patched.sub(
+                '#import <FirebaseStorage/FIRStorageTypedefs.h>',
+                "#import <FirebaseStorage/FirebaseStorage-Swift.h>\n#import <FirebaseStorage/FIRStorageTypedefs.h>"
+              )
+            end
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_storage implementation: #{file}"
+            else
+              puts "No firebase_storage implementation patch needed: #{file}"
+            end
+          end
+
+          messaging_headers.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+            patched = contents.gsub(
+              '#import <Firebase/Firebase.h>',
+              "#import <FirebaseCore/FirebaseCore.h>\n#import <FirebaseMessaging/FirebaseMessaging.h>"
+            )
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_messaging header: #{file}"
+            else
+              puts "No firebase_messaging patch needed: #{file}"
+            end
+          end
+
+          messaging_impls.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+
+            patched = contents
+            unless patched.include?('#import <FirebaseAuth/FirebaseAuth.h>')
+              patched = patched.sub(
+                '#import "FLTFirebaseMessagingPlugin.h"',
+                "#import \"FLTFirebaseMessagingPlugin.h\"\n#import <FirebaseAuth/FirebaseAuth.h>"
+              )
+            end
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_messaging implementation: #{file}"
+            else
+              puts "No firebase_messaging implementation patch needed: #{file}"
+            end
+          end
+
+          auth_headers.each do |file|
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+            patched = contents.gsub(
+              '#import <Firebase/Firebase.h>',
+              "#import <FirebaseCore/FirebaseCore.h>\n#import <FirebaseAuth/FirebaseAuth.h>"
+            )
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched firebase_auth header: #{file}"
+            else
+              puts "No firebase_auth patch needed: #{file}"
+            end
+          end
+          RUBY
+
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Patch gRPC for Xcode 16
+        script: |
+          ruby - <<'RUBY'
+          require 'fileutils'
+
+          files = [
+            File.join(Dir.pwd, 'ios', 'Pods', 'gRPC-Core', 'src', 'core', 'lib', 'promise', 'detail', 'basic_seq.h'),
+            File.join(Dir.pwd, 'ios', 'Pods', 'gRPC-C++', 'src', 'core', 'lib', 'promise', 'detail', 'basic_seq.h')
+          ]
+
+          files.each do |file|
+            next unless File.exist?(file)
+
+            FileUtils.chmod('u+w', file)
+            contents = File.read(file)
+            patched = contents.gsub(/Traits::template\s+CallSeqFactory/, 'Traits::CallSeqFactory')
+
+            if contents != patched
+              File.write(file, patched)
+              puts "Patched #{file} for Xcode 16 compatibility"
+            else
+              puts "No gRPC patch change was needed for #{file}"
+            end
+          end
+
+          abort('No gRPC basic_seq.h files were found to patch') unless files.any? { |file| File.exist?(file) }
+          RUBY
+
+      - name: Build iOS simulator app
+        script: |
+          flutter build ios --simulator --debug
+          cd build/ios/iphonesimulator
+          zip -r Runner.app.zip Runner.app
+
+    artifacts:
+      - build/ios/iphonesimulator/Runner.app.zip
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+
   ios-testflight:
     name: Ben Yaparim iOS TestFlight
-    instance_type: mac_mini_m1
+    instance_type: mac_mini_m2
     max_build_duration: 60
 
     integrations:
