@@ -11,6 +11,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_controller.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/core/utils/text_utils.dart';
+import 'package:soframda_ne_eksik/firebase_options.dart';
 
 import 'core/auth_wrapper.dart';
 import 'core/utils/location_utils.dart';
@@ -30,7 +31,9 @@ Future<void> main() async {
 
   var firebaseStarted = false;
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     firebaseStarted = true;
   } catch (error, stackTrace) {
     debugPrint('Firebase startup failed: $error\n$stackTrace');
