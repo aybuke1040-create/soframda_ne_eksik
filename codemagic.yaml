@@ -205,11 +205,9 @@ workflows:
       - name: Build iOS simulator app
         script: |
           flutter build ios --simulator --debug
-          cd build/ios/iphonesimulator
-          zip -r Runner.app.zip Runner.app
 
     artifacts:
-      - build/ios/iphonesimulator/Runner.app.zip
+      - build/ios/iphonesimulator/Runner.app
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
 
