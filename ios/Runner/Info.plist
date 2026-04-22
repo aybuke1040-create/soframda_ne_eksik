@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Yakınındaki ilanları gösterebilmek ve konumunu seçebilmen için konumuna erişiyoruz.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Yakınındaki ilanları gösterebilmek, konuma bağlı özellikleri çalıştırmak ve konumunu seçebilmen için konum erişimine ihtiyaç duyuyoruz.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>İlanlarına görsel ekleyebilmen için fotoğraf arşivine erişiyoruz.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
