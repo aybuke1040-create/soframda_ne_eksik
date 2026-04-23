@@ -1,42 +1,25 @@
 import 'dart:convert';
 
+bool _looksLikeMojibake(String value) {
+  for (final codeUnit in value.codeUnits) {
+    if (codeUnit == 0x00c3 ||
+        codeUnit == 0x00c4 ||
+        codeUnit == 0x00c5 ||
+        codeUnit == 0x00e2) {
+      return true;
+    }
+  }
+  return false;
+}
+
 String normalizeNotificationText(String value) {
-  if (value.isEmpty) {
+  if (value.isEmpty || !_looksLikeMojibake(value)) {
     return value;
   }
 
-  var normalized = value;
-
-  const replacements = {
-    'Ä°': 'İ',
-    'Ä±': 'ı',
-    'ÄŸ': 'ğ',
-    'Äž': 'Ğ',
-    'ÅŸ': 'ş',
-    'Åž': 'Ş',
-    'Ã¼': 'ü',
-    'Ãœ': 'Ü',
-    'Ã¶': 'ö',
-    'Ã–': 'Ö',
-    'Ã§': 'ç',
-    'Ã‡': 'Ç',
-    'â‚º': '₺',
-    'â€¢': '•',
-  };
-
-  replacements.forEach((broken, fixed) {
-    normalized = normalized.replaceAll(broken, fixed);
-  });
-
-  if (normalized.contains('Ãƒ') ||
-      normalized.contains('Ã…') ||
-      normalized.contains('Ã„')) {
-    try {
-      normalized = utf8.decode(latin1.encode(normalized));
-    } catch (_) {
-      return normalized;
-    }
+  try {
+    return utf8.decode(latin1.encode(value), allowMalformed: true);
+  } catch (_) {
+    return value;
   }
-
-  return normalized;
 }

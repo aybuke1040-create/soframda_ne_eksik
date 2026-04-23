@@ -46,8 +46,8 @@ exports.sendNotification = onDocumentCreated(
     await admin.messaging().send({
       token,
       notification: {
-        title: data.title || "Bildirim",
-        body: data.body || "",
+        title: normalizeNotificationText(data.title || "Bildirim"),
+        body: normalizeNotificationText(data.body || ""),
       },
       data: {
         requestId: data.requestId || "",
@@ -116,7 +116,7 @@ exports.notifyNearbyUsersForNewRequest = onDocumentCreated(
       const notificationRef = db.collection("notifications").doc();
       batch.set(notificationRef, {
         receiverId: userDoc.id,
-        title: "YakÄ±nÄ±nÄ±zda yeni ilan var",
+        title: "Yakınınızda yeni ilan var",
         body: buildNearbyRequestBody(request),
         type: "nearby_request",
         requestId,
@@ -180,6 +180,80 @@ exports.cleanupExpiredRequests = onSchedule(
       }
     },
 );
+
+exports.deleteRequest = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  const {requestId} = request.data || {};
+
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  if (!requestId || typeof requestId !== "string") {
+    throw new HttpsError("invalid-argument", "Invalid request id");
+  }
+
+  const requestRef = db.collection("requests").doc(requestId);
+  const requestSnap = await requestRef.get();
+
+  if (!requestSnap.exists) {
+    return {success: true};
+  }
+
+  const requestData = requestSnap.data() || {};
+  if (String(requestData.ownerId || "") !== uid) {
+    throw new HttpsError(
+        "permission-denied",
+        "Only the listing owner can delete this request",
+    );
+  }
+
+  const refsToDelete = [];
+
+  const orders = await requestRef.collection("orders").get();
+  refsToDelete.push(...orders.docs.map((doc) => doc.ref));
+
+  const offers = await db
+      .collection("offers")
+      .where("requestId", "==", requestId)
+      .get();
+  refsToDelete.push(...offers.docs.map((doc) => doc.ref));
+
+  const notifications = await db
+      .collection("notifications")
+      .where("requestId", "==", requestId)
+      .get();
+  refsToDelete.push(...notifications.docs.map((doc) => doc.ref));
+
+  const chats = await db
+      .collection("chats")
+      .where("requestId", "==", requestId)
+      .get();
+
+  for (const chatDoc of chats.docs) {
+    const messages = await chatDoc.ref.collection("messages").get();
+    refsToDelete.push(...messages.docs.map((doc) => doc.ref));
+
+    const chatData = chatDoc.data() || {};
+    const users = Array.isArray(chatData.users) ? chatData.users : [];
+    for (const userId of users) {
+      refsToDelete.push(
+          db
+              .collection("user_chats")
+              .doc(String(userId))
+              .collection("chats")
+              .doc(chatDoc.id),
+      );
+    }
+
+    refsToDelete.push(chatDoc.ref);
+  }
+
+  refsToDelete.push(requestRef);
+  await deleteDocumentRefs(refsToDelete);
+
+  return {success: true};
+});
 
 exports.useCredits = onCall(async (request) => {
   const uid = request.auth && request.auth.uid;
@@ -914,7 +988,7 @@ exports.sendMessage = onCall(async (request) => {
   const senderIsOwner = requestOwnerId && requestOwnerId === uid;
   const isReadyFoodAutoStarter =
     requestType === "ready_food" &&
-    trimmedText === "SipariÃƒâ€¦Ã…Â¸ vermek istiyorum.";
+    trimmedText === "Sipariş vermek istiyorum.";
   const shouldChargeFirstMessage =
     !senderIsOwner && !alreadyPaid && !isReadyFoodAutoStarter;
 
@@ -1022,7 +1096,10 @@ async function verifyAndroidProductPurchase({packageName, productId, purchaseTok
     accessTokenResponse : accessTokenResponse.token;
 
   if (!accessToken) {
-    throw new HttpsError("internal", "Play doÃƒÂ¯Ã‚Â¿Ã‚Â½rulama eriÃƒÂ¯Ã‚Â¿Ã‚Â½im belirteci alÃƒÂ¯Ã‚Â¿Ã‚Â½namadÃƒÂ¯Ã‚Â¿Ã‚Â½");
+    throw new HttpsError(
+        "internal",
+        "Play doğrulama erişim belirteci alınamadı",
+    );
   }
 
   const url =
@@ -1038,7 +1115,7 @@ async function verifyAndroidProductPurchase({packageName, productId, purchaseTok
     const body = await response.text();
     throw new HttpsError(
         "permission-denied",
-        `Play satÄ±n alma doÄŸrulamasÄ± baÅŸarÄ±sÄ±z: ${body}`,
+        `Play satın alma doğrulaması başarısız: ${body}`,
     );
   }
 
@@ -1094,6 +1171,21 @@ function timestampToDate(value) {
   return null;
 }
 
+async function deleteDocumentRefs(refs) {
+  const chunkSize = 450;
+
+  for (let start = 0; start < refs.length; start += chunkSize) {
+    const batch = db.batch();
+    const chunk = refs.slice(start, start + chunkSize);
+
+    for (const ref of chunk) {
+      batch.delete(ref);
+    }
+
+    await batch.commit();
+  }
+}
+
 function buildChatId(userA, userB, requestId) {
   const users = [userA, userB].sort();
   return `${users[0]}_${users[1]}_${requestId}`;
@@ -1134,18 +1226,36 @@ function buildNearbyRequestBody(request) {
   const title = request.title || "Yeni ilan";
 
   if (request.requestType === "design") {
-    return `${title} organizasyon ilanÄ± size 30 km iÃ§inde aÃ§Ä±ldÄ±.`;
+    return `${title} organizasyon ilanı size 30 km içinde açıldı.`;
   }
 
   if (request.requestType === "delivery") {
-    return `${title} taÅŸÄ±ma ilanÄ± size 30 km iÃ§inde aÃ§Ä±ldÄ±.`;
+    return `${title} taşıma ilanı size 30 km içinde açıldı.`;
   }
 
   if (request.type === "ready_food") {
-    return `${title} hazÄ±r yemek ilanÄ± size 30 km iÃ§inde aÃ§Ä±ldÄ±.`;
+    return `${title} hazır yemek ilanı size 30 km içinde açıldı.`;
   }
 
-  return `${title} size 30 km iÃ§inde yeni ilan olarak aÃ§Ä±ldÄ±.`;
+  return `${title} size 30 km içinde yeni ilan olarak açıldı.`;
+}
+
+function normalizeNotificationText(value) {
+  const text = String(value || "");
+  if (!text) {
+    return text;
+  }
+
+  const hasMojibake = /[ÃÄÅâ]/.test(text);
+  if (!hasMojibake) {
+    return text;
+  }
+
+  try {
+    return Buffer.from(text, "latin1").toString("utf8");
+  } catch (error) {
+    return text;
+  }
 }
 
 function shouldDeleteExpiredRequest(data, now = new Date()) {
