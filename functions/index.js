@@ -23,6 +23,16 @@ const CREDIT_PACK_PRODUCTS = {
   credits_120: 120,
   credits_300: 300,
 };
+const COMMUNITY_TERMS_VERSION = "2026-04-ugc-safety";
+const OBJECTIONABLE_PATTERNS = [
+  /salak/iu,
+  /aptal/iu,
+  /gerizekali/iu,
+  /orospu/iu,
+  /pic/iu,
+  /siktir/iu,
+  /amk/iu,
+];
 
 exports.sendNotification = onDocumentCreated(
   "notifications/{id}",
@@ -456,6 +466,121 @@ exports.verifyAndGrantAndroidPurchase = onCall(async (request) => {
     };
   });
 });
+
+exports.reportContent = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  const {
+    targetUserId,
+    contentType,
+    contentId,
+    reason,
+    details,
+    metadata,
+  } = request.data || {};
+
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  const normalizedType = String(contentType || "").trim();
+  const normalizedReason = String(reason || "").trim();
+  if (!normalizedType || !normalizedReason) {
+    throw new HttpsError("invalid-argument", "Missing report details");
+  }
+
+  const reportRef = db.collection("moderation_reports").doc();
+  await reportRef.set({
+    reporterId: uid,
+    targetUserId: String(targetUserId || "").trim(),
+    contentType: normalizedType,
+    contentId: String(contentId || "").trim(),
+    reason: normalizedReason,
+    details: String(details || "").trim(),
+    metadata: metadata || {},
+    status: "open",
+    termsVersion: COMMUNITY_TERMS_VERSION,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    reviewDeadlineAt: admin.firestore.Timestamp.fromDate(
+        new Date(Date.now() + 24 * 60 * 60 * 1000),
+    ),
+  });
+
+  return {success: true, reportId: reportRef.id};
+});
+
+exports.blockUser = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  const {targetUserId, reason, details} = request.data || {};
+
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  const normalizedTargetUserId = String(targetUserId || "").trim();
+  if (!normalizedTargetUserId || normalizedTargetUserId === uid) {
+    throw new HttpsError("invalid-argument", "Invalid target user");
+  }
+
+  const accountRef = getUserAccountRef(uid);
+  const blockRef = getUserBlockRef(uid, normalizedTargetUserId);
+  const reportRef = db.collection("moderation_reports").doc();
+
+  const batch = db.batch();
+  batch.set(blockRef, {
+    blockedUserId: normalizedTargetUserId,
+    reason: String(reason || "blocked_user").trim(),
+    details: String(details || "").trim(),
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  batch.set(accountRef, {
+    blockedUserIds: admin.firestore.FieldValue.arrayUnion(
+        normalizedTargetUserId,
+    ),
+  }, {merge: true});
+  batch.set(reportRef, {
+    reporterId: uid,
+    targetUserId: normalizedTargetUserId,
+    contentType: "user_block",
+    contentId: normalizedTargetUserId,
+    reason: String(reason || "blocked_user").trim(),
+    details: String(details || "").trim(),
+    status: "open",
+    termsVersion: COMMUNITY_TERMS_VERSION,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    reviewDeadlineAt: admin.firestore.Timestamp.fromDate(
+        new Date(Date.now() + 24 * 60 * 60 * 1000),
+    ),
+  });
+  await batch.commit();
+
+  return {success: true};
+});
+
+exports.unblockUser = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  const {targetUserId} = request.data || {};
+
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  const normalizedTargetUserId = String(targetUserId || "").trim();
+  if (!normalizedTargetUserId) {
+    throw new HttpsError("invalid-argument", "Invalid target user");
+  }
+
+  const batch = db.batch();
+  batch.delete(getUserBlockRef(uid, normalizedTargetUserId));
+  batch.set(getUserAccountRef(uid), {
+    blockedUserIds: admin.firestore.FieldValue.arrayRemove(
+        normalizedTargetUserId,
+    ),
+  }, {merge: true});
+  await batch.commit();
+
+  return {success: true};
+});
+
 exports.sendOffer = onCall(async (request) => {
   const uid = request.auth && request.auth.uid;
   const {requestId, ownerId, price, actionName, fromChat} = request.data || {};
@@ -475,6 +600,18 @@ exports.sendOffer = onCall(async (request) => {
 
   if (uid === ownerId) {
     throw new HttpsError("failed-precondition", "Owner cannot send offer");
+  }
+
+  if (containsObjectionableContent(String(request.data?.details || ""))) {
+    throw new HttpsError("invalid-argument", "Offer content is not allowed");
+  }
+
+  const blockedBetweenUsers = await isBlockedBetweenUsers(uid, ownerId);
+  if (blockedBetweenUsers) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Bu kullanici ile etkilesim sinirlandirildi",
+    );
   }
 
   const offerId = `${requestId}_${uid}`;
@@ -852,6 +989,13 @@ exports.submitReview = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Invalid review payload");
   }
 
+  if (containsObjectionableContent(String(comment || ""))) {
+    throw new HttpsError(
+        "invalid-argument",
+        "Yorum topluluk kurallarina aykiri ifadeler iceriyor",
+    );
+  }
+
   const reviewRef = db.collection("reviews").doc(`${requestId}_${uid}`);
   const requestRef = db.collection("requests").doc(requestId);
   const targetUserRef = db.collection("users").doc(toUserId);
@@ -971,6 +1115,24 @@ exports.sendMessage = onCall(async (request) => {
     throw new HttpsError("permission-denied", "Chat participant required");
   }
 
+  if (containsObjectionableContent(trimmedText)) {
+    throw new HttpsError(
+        "invalid-argument",
+        "Mesaj topluluk kurallarina aykiri ifadeler iceriyor",
+    );
+  }
+
+  const otherUserId = users.find((userId) => userId !== uid) || "";
+  if (otherUserId) {
+    const blockedBetweenUsers = await isBlockedBetweenUsers(uid, otherUserId);
+    if (blockedBetweenUsers) {
+      throw new HttpsError(
+          "failed-precondition",
+          "Bu kullanici ile etkilesim sinirlandirildi",
+      );
+    }
+  }
+
   const requestId = String(chatData.requestId || "");
   let requestOwnerId = "";
   let requestType = "";
@@ -1070,7 +1232,7 @@ exports.sendMessage = onCall(async (request) => {
       db.collection("user_chats").doc(uid).collection("chats").doc(chatId),
       {
         chatId,
-        otherUserId: users.find((userId) => userId !== uid) || "",
+        otherUserId,
         lastMessage: trimmedText,
         lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
       },
@@ -1258,6 +1420,25 @@ function normalizeNotificationText(value) {
   }
 }
 
+function normalizeForModeration(value) {
+  return String(value || "")
+      .toLocaleLowerCase("tr-TR")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, " ")
+      .replace(/[^a-z0-9ğüşiöçı\s]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+}
+
+function containsObjectionableContent(value) {
+  const normalized = normalizeForModeration(value);
+  if (!normalized) {
+    return false;
+  }
+
+  return OBJECTIONABLE_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
 function shouldDeleteExpiredRequest(data, now = new Date()) {
   const status = String(data.status || "open");
   if (status !== "open" && status !== "active") {
@@ -1297,6 +1478,41 @@ function getUserPrivateContextRef(userId) {
       .doc(userId)
       .collection("private")
       .doc(PRIVATE_CONTEXT_DOC_ID);
+}
+
+function getUserAccountRef(userId) {
+  return db.collection("users").doc(userId)
+      .collection("private").doc("account");
+}
+
+function getUserBlocksCollectionRef(userId) {
+  return db.collection("users").doc(userId)
+      .collection("private").doc("blocks").collection("items");
+}
+
+function getUserBlockRef(userId, targetUserId) {
+  return getUserBlocksCollectionRef(userId).doc(targetUserId);
+}
+
+async function getBlockedUserIds(userId) {
+  const accountSnapshot = await getUserAccountRef(userId).get();
+  const accountData = accountSnapshot.exists ? (accountSnapshot.data() || {}) : {};
+  const accountBlocked = Array.isArray(accountData.blockedUserIds) ?
+    accountData.blockedUserIds.map((value) => String(value)) : [];
+
+  const blockSnapshots = await getUserBlocksCollectionRef(userId).get();
+  const blockDocIds = blockSnapshots.docs.map((doc) => String(doc.id));
+
+  return Array.from(new Set([...accountBlocked, ...blockDocIds]));
+}
+
+async function isBlockedBetweenUsers(userA, userB) {
+  const [userABlocked, userBBlocked] = await Promise.all([
+    getBlockedUserIds(userA),
+    getBlockedUserIds(userB),
+  ]);
+
+  return userABlocked.includes(userB) || userBBlocked.includes(userA);
 }
 
 async function getUserPrivateContext(userId) {

@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:soframda_ne_eksik/core/utils/content_moderation_utils.dart';
 import 'package:soframda_ne_eksik/core/utils/location_utils.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/delivery_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
@@ -151,6 +153,23 @@ class _CreateDeliveryRequestScreenState
       return;
     }
 
+    final moderationIssue = findObjectionableContent({
+      'title': titleController.text,
+      'description': descController.text,
+      'pickupAddress': pickupController.text,
+      'dropAddress': dropController.text,
+    });
+    if (moderationIssue != null) {
+      await ActionFeedbackService.show(
+        context,
+        title: 'Icerik gonderilemedi',
+        message:
+            'Topluluk kurallarina aykiri gorunen bir ifade tespit edildi. Lutfen metni duzeltip tekrar deneyin.',
+        icon: Icons.report_gmailerrorred_rounded,
+      );
+      return;
+    }
+
     setState(() => loading = true);
 
     try {
@@ -181,7 +200,7 @@ class _CreateDeliveryRequestScreenState
           'deliveryTime': selectedDateTime?.toIso8601String() ?? '',
           'imageUrl': imageUrl,
           'ownerId': user.uid,
-          'ownerName': userData['name'] ?? 'Kullanici',
+          'ownerName': userData['name'] ?? 'Kullanıcı',
           'requestType': 'delivery',
           'status': 'open',
           'updatedAt': FieldValue.serverTimestamp(),
@@ -202,7 +221,7 @@ class _CreateDeliveryRequestScreenState
               deliveryTime: selectedDateTime?.toIso8601String() ?? '',
               imageUrl: imageUrl,
               ownerId: user.uid,
-              ownerName: userData['name'] ?? 'Kullanici',
+              ownerName: userData['name'] ?? 'Kullanıcı',
             );
           },
         );
@@ -221,14 +240,13 @@ class _CreateDeliveryRequestScreenState
       }
 
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isEditing
-                ? 'Taşıma ilanı güncellendi.'
-                : 'Taşıma ilanı yayına alındı.',
-          ),
-        ),
+      await ActionFeedbackService.show(
+        context,
+        title: _isEditing ? 'İlan güncellendi' : 'İlan yayına alındı',
+        message: _isEditing
+            ? 'Taşıma ilanı güncellendi.'
+            : 'Taşıma ilanı yayına alındı.',
+        icon: Icons.check_circle_outline_rounded,
       );
     } catch (e) {
       if (!mounted) {
@@ -239,17 +257,20 @@ class _CreateDeliveryRequestScreenState
       if (message.contains('kredi')) {
         PaywallService.showInsufficientCreditsSheet(
           context,
-          title: 'Tasima ilani vermek icin 10 kredi gerekiyor',
+          title: 'Taşıma ilanı vermek için 10 kredi gerekiyor',
           message:
-              'Tasima ilanini yayinlamak icin once kredi satin alabilir, sonra islemini tamamlayabilirsin.',
-          buttonLabel: 'Kredi Satin Al',
+              'Taşıma ilanını yayınlamak için önce kredi satın alabilir, sonra işlemini tamamlayabilirsin.',
+          buttonLabel: 'Kredi Satın Al',
           highlight: 'Sana uygun kredi paketleri',
         );
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'İşlem tamamlanamadı',
+        message: '$e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {
@@ -262,7 +283,7 @@ class _CreateDeliveryRequestScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Taşıma İlanıni Duzenle' : 'Taşıma İlanı'),
+        title: Text(_isEditing ? 'Taşıma İlanını Düzenle' : 'Taşıma İlanı'),
       ),
       body: loading
           ? const Center(child: CircularProgressIndicator())
@@ -297,7 +318,7 @@ class _CreateDeliveryRequestScreenState
                                           size: 36),
                                       SizedBox(height: 8),
                                       Text(
-                                          'Tasima urunu veya paket gorseli ekle'),
+                                          'Taşıma ürünü veya paket görseli ekle'),
                                     ],
                                   ),
                                 )
@@ -308,9 +329,9 @@ class _CreateDeliveryRequestScreenState
                   TextField(
                     controller: titleController,
                     decoration: const InputDecoration(
-                      labelText: 'Baslik',
+                      labelText: 'Başlık',
                       hintText:
-                          'Orn: Kadikoyden Besiktasa 3 tepsi yemek tasinacak',
+                          'Örn: Kadıköyden Beşiktaşa 3 tepsi yemek taşınacak',
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -320,23 +341,23 @@ class _CreateDeliveryRequestScreenState
                     decoration: const InputDecoration(
                       labelText: 'Detay',
                       hintText:
-                          'Tasima sekli, hassasiyet, kat bilgisi veya teslim notlarini yaz.',
+                          'Taşıma şekli, hassasiyet, kat bilgisi veya teslim notlarını yaz.',
                     ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: pickupController,
                     decoration: const InputDecoration(
-                      labelText: 'Nereden Alinacak',
-                      hintText: 'Orn: Fenerbahce Mahallesi, apartman girisi',
+                      labelText: 'Nereden Alınacak',
+                      hintText: 'Örn: Fenerbahçe Mahallesi, apartman girişi',
                     ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: dropController,
                     decoration: const InputDecoration(
-                      labelText: 'Nereye Birakilacak',
-                      hintText: 'Orn: Levent, plaza girisi',
+                      labelText: 'Nereye Bırakılacak',
+                      hintText: 'Örn: Levent, plaza girişi',
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -345,7 +366,7 @@ class _CreateDeliveryRequestScreenState
                     icon: const Icon(Icons.schedule),
                     label: Text(
                       selectedDateTime == null
-                          ? 'Tarih ve Saat Sec'
+                          ? 'Tarih ve Saat Seç'
                           : '${selectedDateTime!.day}.${selectedDateTime!.month}.${selectedDateTime!.year} ${selectedDateTime!.hour.toString().padLeft(2, '0')}:${selectedDateTime!.minute.toString().padLeft(2, '0')}',
                     ),
                   ),
@@ -358,10 +379,10 @@ class _CreateDeliveryRequestScreenState
                       onPressed: loading ? null : createRequest,
                       child: Text(
                         loading
-                            ? 'Yayinlaniyor...'
+                            ? 'Yayınlanıyor...'
                             : _isEditing
-                                ? 'Degisiklikleri Kaydet'
-                                : '10 Kredi ile Premium Ilan Ver',
+                                ? 'Değişiklikleri Kaydet'
+                                : '10 Kredi ile Premium İlan Ver',
                       ),
                     ),
                   ),
@@ -395,12 +416,12 @@ class _CreateDeliveryRequestScreenState
           ),
           SizedBox(height: 8),
           Text(
-            'Nereden alinacagini, nereye bırakılacağını ve ne zaman teslim edilecegini net yaz. Taşıyıcılar sana daha hızlı teklif gonderebilir.',
+            'Nereden alınacağını, nereye bırakılacağını ve ne zaman teslim edileceğini net yaz. Taşıyıcılar sana daha hızlı teklif gönderebilir.',
             style: TextStyle(height: 1.45),
           ),
           SizedBox(height: 10),
           Text(
-            'Ilan yayina alma bedeli: 10 kredi',
+            'İlan yayına alma bedeli: 10 kredi',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: Color(0xFF2C6E99),
@@ -423,7 +444,7 @@ class _CreateDeliveryRequestScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Daha iyi teklif icin bunlari ekle',
+            'Daha iyi teklif için bunları ekle',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 15,
@@ -431,7 +452,7 @@ class _CreateDeliveryRequestScreenState
           ),
           SizedBox(height: 10),
           _DeliveryChecklistItem(text: 'Taşıma ürününün ne olduğu'),
-          _DeliveryChecklistItem(text: 'Alis ve birakis adresi'),
+          _DeliveryChecklistItem(text: 'Alış ve bırakış adresi'),
           _DeliveryChecklistItem(text: 'Tarih ve saat bilgisi'),
           _DeliveryChecklistItem(text: 'Hassasiyet veya ek notlar'),
         ],
@@ -445,7 +466,7 @@ class _CreateDeliveryRequestScreenState
     final pickup = pickupController.text.trim();
     final drop = dropController.text.trim();
     final schedule = selectedDateTime == null
-        ? 'Tarih secilmedi'
+        ? 'Tarih seçilmedi'
         : '${selectedDateTime!.day}.${selectedDateTime!.month}.${selectedDateTime!.year} ${selectedDateTime!.hour.toString().padLeft(2, '0')}:${selectedDateTime!.minute.toString().padLeft(2, '0')}';
 
     return Container(
@@ -459,7 +480,7 @@ class _CreateDeliveryRequestScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Ilan ozeti',
+            'İlan özeti',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 15,
@@ -467,22 +488,22 @@ class _CreateDeliveryRequestScreenState
           ),
           const SizedBox(height: 10),
           Text(
-            title.isEmpty ? 'Başlık burada gorunecek.' : title,
+            title.isEmpty ? 'Başlık burada görünecek.' : title,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 6),
-          Text(pickup.isEmpty ? 'Alis noktasi girilmedi' : 'Alis: $pickup'),
+          Text(pickup.isEmpty ? 'Alış noktası girilmedi' : 'Alış: $pickup'),
           const SizedBox(height: 4),
-          Text(drop.isEmpty ? 'Birakis noktasi girilmedi' : 'Birak: $drop'),
+          Text(drop.isEmpty ? 'Bırakış noktası girilmedi' : 'Bırak: $drop'),
           const SizedBox(height: 4),
           Text(schedule),
           const SizedBox(height: 8),
           Text(
             detail.isEmpty
-                ? 'Detay girdiginde taşıyıcılar işini daha doğru fiyatlar.'
+                ? 'Detay girdiğinde taşıyıcılar işini daha doğru fiyatlar.'
                 : detail,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,

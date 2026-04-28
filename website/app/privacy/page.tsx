@@ -1,47 +1,47 @@
-import type { Metadata } from "next";
-import { siteConfig } from "@/components/site-config";
+import type {Metadata} from "next";
+import {siteConfig} from "@/components/site-config";
 
 export const metadata: Metadata = {
-  title: "Gizlilik Politikası",
+  title: "Gizlilik Politikasi",
   alternates: {
-    canonical: "/privacy"
-  }
+    canonical: "/privacy",
+  },
 };
 
 const sections = [
   {
-    title: "Hangi veriler toplanır",
+    title: "Hangi verileri topluyoruz",
     items: [
-      "Hesap oluşturma ve giriş süreçleri için gerekli temel kimlik ve iletişim bilgileri.",
-      "Sana yakın hizmetleri gösterebilmek için konum veya bölgesel bilgi.",
-      "Teklif ve iletişim akışını sürdürebilmek için mesajlaşma içerikleri.",
-      "Önemli gelişmeleri iletebilmek için bildirim tercihleri ve cihaz bilgileri."
-    ]
+      "Hesap olusturma ve giris islemleri icin temel kimlik ve iletisim bilgileri.",
+      "Sana yakin ilanlari ve uygun eslesmeleri gosterebilmek icin konum veya bolgesel bilgi.",
+      "Teklif, sohbet ve is birligi akislarini surdurebilmek icin kullanici tarafindan olusturulan icerikler.",
+      "Bildirimleri dogru sekilde iletmek icin cihaz ve bildirim tercihleri.",
+    ],
   },
   {
-    title: "Neden toplanır",
+    title: "Verileri neden isliyoruz",
     items: [
-      "Daha doğru eşleşmeler sunabilmek ve sana uygun fırsatları gösterebilmek.",
-      "Talep, teklif ve mesajlaşma akışlarını güvenli şekilde yönetebilmek.",
-      "Hizmet kalitesini artırmak, destek süreçlerini kolaylaştırmak ve güvenliği güçlendirmek."
-    ]
+      "Ilan, teklif, mesajlasma ve eslesme deneyimini calistirmak.",
+      "Dolandiricilik, taciz, spam ve uygunsuz icerige karsi guvenlik kontrolleri uygulamak.",
+      "Destek taleplerini, hesap sorunlarini ve guvenlik bildirimlerini yonetmek.",
+    ],
   },
   {
-    title: "Konum, mesajlaşma ve bildirimler",
+    title: "Moderasyon, sikayet ve engelleme verileri",
     items: [
-      "Konum verisi, bulunduğun çevredeki uygun hizmet sağlayıcılarını öne çıkarmak için kullanılabilir.",
-      "Mesajlaşma içerikleri, taraflar arasındaki iletişimin sağlıklı ilerlemesi için işlenir.",
-      "Bildirimler; yeni teklif, mesaj veya süreç güncellemelerini zamanında iletmek için gönderilebilir."
-    ]
+      "Uygulama icinden yapilan sikayet kayitlari, raporlanan icerigi incelemek ve topluluk guvenligini korumak icin islenir.",
+      "Engellenen kullanicilar bilgisi, ilgili kisinin icerigini kullanicinin akisindan gizlemek ve istenmeyen iletisimi durdurmak icin kullanilir.",
+      "Raporlanan icerikler ve ilgili hesaplar en gec 24 saat icinde incelenir; gerekli durumlarda icerik kaldirilir veya hesap kapatilir.",
+    ],
   },
   {
-    title: "Hesap silme ve veri talebi",
+    title: "Hesap silme ve veri talepleri",
     items: [
-      "Kullanıcılar uygulama içinden hesap silme adımlarını takip edebilir.",
-      "Ek veri silme veya bilgi talebi için destek ekibimize ulaşabilir.",
-      "Talepler, yasal yükümlülükler ve operasyonel gereklilikler doğrultusunda değerlendirilir."
-    ]
-  }
+      "Kullanicilar uygulama icinden hesap silme adimlarini baslatabilir.",
+      "Ek veri silme veya bilgi talepleri icin destek ekibimize ulasilabilir.",
+      "Yasal yukumlulukler, guvenlik incelemeleri ve acik uyusmazliklar nedeniyle bazi kayitlar belirli surelerle saklanabilir.",
+    ],
+  },
 ] as const;
 
 export default function PrivacyPage() {
@@ -49,10 +49,13 @@ export default function PrivacyPage() {
     <div className="section-shell py-16 sm:py-20">
       <div className="max-w-3xl">
         <p className="text-xs font-black uppercase tracking-[0.24em] text-plum-700">Privacy</p>
-        <h1 className="mt-3 text-4xl font-black tracking-tight text-ink sm:text-5xl">Gizlilik politikamız</h1>
+        <h1 className="mt-3 text-4xl font-black tracking-tight text-ink sm:text-5xl">
+          Gizlilik politikamiz
+        </h1>
         <p className="mt-5 text-lg leading-8 text-slate-600">
-          Ben Yaparım, hizmet deneyimini güvenli, şeffaf ve sürdürülebilir biçimde sunabilmek için gerekli verileri işler.
-          Hangi bilginin neden kullanıldığını açıkça anlatmayı önemsiyoruz.
+          Ben Yaparim, kullanicilarina guvenli ve seffaf bir deneyim sunabilmek icin
+          gerekli verileri isler. Hangi bilginin neden kullanildigini acikca anlatmayi
+          ve topluluk guvenligini korumayi onemsiyoruz.
         </p>
       </div>
 
@@ -72,13 +75,14 @@ export default function PrivacyPage() {
       </div>
 
       <div className="mt-8 rounded-4xl border border-plum-100 bg-white p-6">
-        <h2 className="text-2xl font-black text-ink">İletişim</h2>
+        <h2 className="text-2xl font-black text-ink">Iletisim</h2>
         <p className="mt-3 text-sm leading-7 text-slate-600">
-          Gizlilik, veri talebi veya hesap silme süreçleriyle ilgili her konuda{" "}
+          Gizlilik, veri talepleri, sikayetler veya hesap silme surecleriyle ilgili her
+          konuda{" "}
           <a className="font-bold text-plum-700" href={`mailto:${siteConfig.supportEmail}`}>
             {siteConfig.supportEmail}
           </a>{" "}
-          adresinden bize ulaşabilirsin.
+          adresinden bize ulasabilirsin.
         </p>
       </div>
     </div>

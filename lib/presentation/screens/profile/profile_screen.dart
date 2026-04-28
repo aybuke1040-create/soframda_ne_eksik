@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/presentation/screens/delivery/my_jobs_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/edit_profile_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/review/create_review_screen.dart';
+import 'package:soframda_ne_eksik/presentation/screens/settings/blocked_users_screen.dart';
+import 'package:soframda_ne_eksik/presentation/screens/settings/community_terms_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/settings_screen.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
+import 'package:soframda_ne_eksik/services/moderation_service.dart';
 import 'package:soframda_ne_eksik/services/request_completion_service.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -37,6 +41,114 @@ class UserProfileScreen extends StatelessWidget {
     required this.userId,
     this.isCurrentUser = false,
   });
+
+  Future<String?> _pickModerationReason(
+    BuildContext context, {
+    required String title,
+  }) async {
+    const reasons = <String>[
+      'Hakaret veya taciz',
+      'Uygunsuz icerik',
+      'Spam veya dolandiricilik',
+      'Tehdit veya guvensiz davranis',
+      'Diger',
+    ];
+
+    return showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...reasons.map((reason) {
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(reason),
+                    onTap: () => Navigator.pop(sheetContext, reason),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _reportUser(
+    BuildContext context,
+    String targetName,
+  ) async {
+    final reason = await _pickModerationReason(
+      context,
+      title: 'Bu kullaniciyi neden sikayet etmek istiyorsun?',
+    );
+    if (reason == null) {
+      return;
+    }
+
+    await ModerationService().reportUser(
+      targetUserId: userId,
+      reason: reason,
+    );
+
+    if (!context.mounted) {
+      return;
+    }
+
+    await ActionFeedbackService.show(
+      context,
+      title: 'Sikayet alindi',
+      message:
+          '$targetName hakkindaki bildirimini aldik. Icerik 24 saat icinde incelenecek.',
+      icon: Icons.flag_outlined,
+    );
+  }
+
+  Future<void> _blockUser(
+    BuildContext context,
+    String targetName,
+  ) async {
+    final reason = await _pickModerationReason(
+      context,
+      title: 'Bu kullaniciyi neden engellemek istiyorsun?',
+    );
+    if (reason == null) {
+      return;
+    }
+
+    await ModerationService().blockUser(
+      targetUserId: userId,
+      targetName: targetName,
+    );
+
+    if (!context.mounted) {
+      return;
+    }
+
+    await ActionFeedbackService.show(
+      context,
+      title: 'Kullanici engellendi',
+      message:
+          '$targetName artik ilanlarinda, mesaj listende ve akisinda gosterilmeyecek.',
+      icon: Icons.block_rounded,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,11 +189,17 @@ class UserProfileScreen extends StatelessWidget {
           final rating = (data?['ratingAverage'] ?? 0).toDouble();
           final orders = data?['completedOrders'] ?? 0;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          return StreamBuilder<Set<String>>(
+            stream: ModerationService().watchBlockedUserIds(),
+            builder: (context, blockedSnapshot) {
+              final blockedUserIds = blockedSnapshot.data ?? const <String>{};
+              final isBlocked = blockedUserIds.contains(userId);
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                 Center(
                   child: Container(
                     width: 110,
@@ -156,6 +274,27 @@ class UserProfileScreen extends StatelessWidget {
                     },
                     child: const Text('\u0130lanlar\u0131n\u0131 G\u00f6r'),
                   ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () => _reportUser(context, name),
+                    icon: const Icon(Icons.flag_outlined),
+                    label: const Text('Kullaniciyi Sikayet Et'),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          isBlocked ? Colors.grey.shade700 : Colors.redAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: isBlocked
+                        ? null
+                        : () => _blockUser(context, name),
+                    icon: const Icon(Icons.block),
+                    label: Text(
+                      isBlocked ? 'Bu kullanici engelli' : 'Kullaniciyi Engelle',
+                    ),
+                  ),
                 ],
                 if (isCurrentUser) ...[
                   const SizedBox(height: 30),
@@ -200,6 +339,30 @@ class UserProfileScreen extends StatelessWidget {
                     },
                   ),
                   _menuItem(
+                    icon: Icons.gavel_outlined,
+                    title: 'Topluluk Kurallari',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CommunityTermsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _menuItem(
+                    icon: Icons.block_outlined,
+                    title: 'Engelledigim Kullanicilar',
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BlockedUsersScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  _menuItem(
                     icon: Icons.settings,
                     title: 'Ayarlar',
                     onTap: () {
@@ -222,8 +385,10 @@ class UserProfileScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _ReviewsSection(userId: userId),
-              ],
-            ),
+                  ],
+                ),
+              );
+            },
           );
         },
       ),
@@ -350,25 +515,26 @@ class _FollowButtonState extends State<_FollowButton> {
                         return;
                       }
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isFollowing
-                                ? 'Takip b\u0131rak\u0131ld\u0131'
-                                : 'Kullan\u0131c\u0131 takip edildi',
-                          ),
-                        ),
+                      await ActionFeedbackService.show(
+                        context,
+                        title: isFollowing
+                            ? 'Takip bırakıldı'
+                            : 'Kullanıcı takip edildi',
+                        message: isFollowing
+                            ? 'Takip bırakıldı.'
+                            : 'Kullanıcı takip edildi.',
+                        icon: Icons.person_add_alt_1_rounded,
                       );
                     } catch (e) {
                       if (!context.mounted) {
                         return;
                       }
 
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              'Takip i\u015flemi ba\u015far\u0131s\u0131z: $e'),
-                        ),
+                      await ActionFeedbackService.show(
+                        context,
+                        title: 'Takip işlemi başarısız',
+                        message: 'Takip işlemi başarısız: $e',
+                        icon: Icons.error_outline_rounded,
                       );
                     } finally {
                       if (mounted) {
@@ -621,14 +787,15 @@ class UserListingsScreen extends StatelessWidget {
                             return;
                           }
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                result['completed'] == true
-                                    ? '\u0130\u015f tamamland\u0131. Yorum ekran\u0131 a\u00e7\u0131l\u0131yor.'
-                                    : 'Kar\u015f\u0131 taraf\u0131n tamamland\u0131 onay\u0131 bekleniyor.',
-                              ),
-                            ),
+                          await ActionFeedbackService.show(
+                            context,
+                            title: result['completed'] == true
+                                ? 'İş tamamlandı'
+                                : 'Onay bekleniyor',
+                            message: result['completed'] == true
+                                ? 'İş tamamlandı. Yorum ekranı açılıyor.'
+                                : 'Karşı tarafın tamamlandı onayı bekleniyor.',
+                            icon: Icons.check_circle_outline_rounded,
                           );
                         },
                         child: const Text('Tamamlandı De'),

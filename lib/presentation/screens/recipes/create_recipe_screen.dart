@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:soframda_ne_eksik/core/utils/content_moderation_utils.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class CreateRecipeScreen extends StatefulWidget {
   const CreateRecipeScreen({super.key});
@@ -68,8 +70,28 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     }
 
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tarif başlığı gir.')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Başlık gerekli',
+        message: 'Tarif başlığı gir.',
+        icon: Icons.info_outline_rounded,
+      );
+      return;
+    }
+
+    final moderationIssue = findObjectionableContent({
+      'title': _titleController.text,
+      'description': _descriptionController.text,
+      'ingredients': _ingredientsController.text,
+      'instructions': _instructionsController.text,
+    });
+    if (moderationIssue != null) {
+      await ActionFeedbackService.show(
+        context,
+        title: 'Icerik gonderilemedi',
+        message:
+            'Topluluk kurallarina aykiri gorunen bir ifade tespit edildi. Lutfen tarifi duzeltip tekrar deneyin.',
+        icon: Icons.report_gmailerrorred_rounded,
       );
       return;
     }
@@ -112,10 +134,11 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
 
       Navigator.pop(context);
       if (_imageFile != null && imageUrl == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tarif kaydedildi, görsel yüklenemedi.'),
-          ),
+        await ActionFeedbackService.show(
+          context,
+          title: 'Tarif kaydedildi',
+          message: 'Tarif kaydedildi, görsel yüklenemedi.',
+          icon: Icons.info_outline_rounded,
         );
       }
     } catch (e) {
@@ -123,8 +146,11 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tarif kaydedilemedi: $e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Tarif kaydedilemedi',
+        message: 'Tarif kaydedilemedi: $e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {

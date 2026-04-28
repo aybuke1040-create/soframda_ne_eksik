@@ -8,13 +8,100 @@ import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/chat_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
+import 'package:soframda_ne_eksik/services/moderation_service.dart';
 import 'package:soframda_ne_eksik/services/offer_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
+import 'package:soframda_ne_eksik/services/request_delete_service.dart';
 
 class DeliveryDetailScreen extends StatelessWidget {
   final String requestId;
 
   const DeliveryDetailScreen({super.key, required this.requestId});
+
+  Future<String?> _pickModerationReason(BuildContext context) async {
+    const reasons = <String>[
+      'Hakaret veya taciz',
+      'Uygunsuz icerik',
+      'Spam veya dolandiricilik',
+      'Tehdit veya guvensiz davranis',
+      'Diger',
+    ];
+
+    return showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bu ilani neden sikayet etmek istiyorsun?',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                ...reasons.map(
+                  (reason) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(reason),
+                    onTap: () => Navigator.pop(sheetContext, reason),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _reportRequest(BuildContext context, String ownerId, String title) async {
+    final reason = await _pickModerationReason(context);
+    if (reason == null) return;
+
+    await ModerationService().reportRequest(
+      requestId: requestId,
+      ownerId: ownerId,
+      reason: reason,
+      metadata: {
+        'surface': 'delivery_detail',
+        'title': title,
+      },
+    );
+
+    if (!context.mounted) return;
+    await ActionFeedbackService.show(
+      context,
+      title: 'Sikayet alindi',
+      message: 'Bildirim alindi. Moderasyon ekibimiz en gec 24 saat icinde inceleyecek.',
+      icon: Icons.flag_outlined,
+    );
+  }
+
+  Future<void> _blockOwner(BuildContext context, String ownerId) async {
+    await ModerationService().blockUser(
+      targetUserId: ownerId,
+      reason: 'Tasima ilaninda kullanici engellendi',
+      metadata: {
+        'surface': 'delivery_detail',
+        'requestId': requestId,
+      },
+    );
+
+    if (!context.mounted) return;
+    await ActionFeedbackService.show(
+      context,
+      title: 'Kullanici engellendi',
+      message: 'Bu kullanicinin ilanlari ve iletisimleri artik sana gosterilmeyecek.',
+      icon: Icons.block_outlined,
+    );
+    if (context.mounted) Navigator.pop(context);
+  }
 
   Future<void> _deleteRequest(BuildContext context) async {
     final shouldDelete = await showDialog<bool>(
@@ -42,8 +129,18 @@ class DeliveryDetailScreen extends StatelessWidget {
         false;
 
     if (!shouldDelete) return;
-    await FirebaseFirestore.instance.collection('requests').doc(requestId).delete();
-    if (context.mounted) Navigator.pop(context);
+    await RequestDeleteService().deleteRequest(requestId);
+    if (!context.mounted) return;
+    Navigator.pop(context);
+    await ActionFeedbackService.show(
+      context,
+      title: context.t('İlan silindi', 'Listing deleted'),
+      message: context.t(
+        'Taşıma ilanın ve ilişkili kayıtlar kaldırıldı.',
+        'Your delivery listing and related records were removed.',
+      ),
+      icon: Icons.delete_outline_rounded,
+    );
   }
 
   Future<void> _featureRequest(BuildContext context) async {
@@ -106,8 +203,14 @@ class DeliveryDetailScreen extends StatelessWidget {
 
   Future<void> _openChat(BuildContext context, String ownerId) async {
     if (ownerId.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('İlan sahibine ulaşılamadı.', 'The listing owner could not be reached.'))),
+      await ActionFeedbackService.show(
+        context,
+        title: context.t('İlan sahibine ulaşılamadı', 'Owner unavailable'),
+        message: context.t(
+          'İlan sahibine ulaşılamadı.',
+          'The listing owner could not be reached.',
+        ),
+        icon: Icons.error_outline_rounded,
       );
       return;
     }
@@ -121,8 +224,14 @@ class DeliveryDetailScreen extends StatelessWidget {
       Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(chatId: chatId)));
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('Sohbet açılamadı: $e', 'Chat could not be opened: $e'))),
+      await ActionFeedbackService.show(
+        context,
+        title: context.t('Sohbet açılamadı', 'Chat could not be opened'),
+        message: context.t(
+          'Sohbet açılamadı: $e',
+          'Chat could not be opened: $e',
+        ),
+        icon: Icons.error_outline_rounded,
       );
     }
   }
@@ -131,26 +240,56 @@ class DeliveryDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
-    return Scaffold(
-      appBar: AppBar(title: Text(context.t('Taşıma İlanı', 'Delivery Listing'))),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('requests').doc(requestId).snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.data!.exists) {
-            return Center(child: Text(context.t('İlan bulunamadı.', 'Listing not found.')));
-          }
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('requests').doc(requestId).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        if (!snapshot.data!.exists) {
+          return Scaffold(
+            appBar: AppBar(title: Text(context.t('Taşıma İlanı', 'Delivery Listing'))),
+            body: Center(child: Text(context.t('İlan bulunamadı.', 'Listing not found.'))),
+          );
+        }
 
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final ownerId = data['ownerId'] as String? ?? '';
-          final isOwner = ownerId == currentUserId;
-          final imageUrl = data['imageUrl'] as String? ?? '';
-          final description = data['description'] as String? ?? '';
-          final isFeatured = data['isFeatured'] == true;
-          final featuredUntil = data['featuredUntil'] as Timestamp?;
-          final isFeatureActive = isFeatured && featuredUntil != null && featuredUntil.toDate().isAfter(DateTime.now());
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        final ownerId = data['ownerId'] as String? ?? '';
+        final isOwner = ownerId == currentUserId;
+        final imageUrl = data['imageUrl'] as String? ?? '';
+        final description = data['description'] as String? ?? '';
+        final isFeatured = data['isFeatured'] == true;
+        final featuredUntil = data['featuredUntil'] as Timestamp?;
+        final isFeatureActive =
+            isFeatured && featuredUntil != null && featuredUntil.toDate().isAfter(DateTime.now());
 
-          return SingleChildScrollView(
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(context.t('Taşıma İlanı', 'Delivery Listing')),
+            actions: [
+              if (!isOwner)
+                PopupMenuButton<String>(
+                  onSelected: (value) async {
+                    if (value == 'report') {
+                      await _reportRequest(context, ownerId, (data['title'] ?? '').toString());
+                    } else if (value == 'block') {
+                      await _blockOwner(context, ownerId);
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem<String>(
+                      value: 'report',
+                      child: Text('Ilani Sikayet Et'),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'block',
+                      child: Text('Kullaniciyi Engelle'),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          body: SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: Column(
@@ -294,7 +433,12 @@ class DeliveryDetailScreen extends StatelessWidget {
                                             final senderId = (offer['senderId'] ?? '').toString();
                                             if (senderId.trim().isEmpty) {
                                               if (!context.mounted) return;
-                                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Teklif sahibine ulaşılamadı.')));
+                                              await ActionFeedbackService.show(
+                                                context,
+                                                title: 'Teklif sahibi bulunamadı',
+                                                message: 'Teklif sahibine ulaşılamadı.',
+                                                icon: Icons.error_outline_rounded,
+                                              );
                                               return;
                                             }
 
@@ -314,7 +458,12 @@ class DeliveryDetailScreen extends StatelessWidget {
                                               );
                                             } catch (e) {
                                               if (!context.mounted) return;
-                                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Teklif açılamadı: $e')));
+                                              await ActionFeedbackService.show(
+                                                context,
+                                                title: 'Teklif açılamadı',
+                                                message: 'Teklif açılamadı: $e',
+                                                icon: Icons.error_outline_rounded,
+                                              );
                                             }
                                           },
                                           child: const Text('Teklifi İncele'),
@@ -333,9 +482,9 @@ class DeliveryDetailScreen extends StatelessWidget {
                 ],
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:soframda_ne_eksik/core/utils/content_moderation_utils.dart';
 import 'package:soframda_ne_eksik/core/utils/request_visibility_utils.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
@@ -122,6 +123,22 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || !_formKey.currentState!.validate()) return;
 
+    final moderationIssue = findObjectionableContent({
+      'title': _titleController.text,
+      'description': _descriptionController.text,
+      'quantity': _quantityController.text,
+    });
+    if (moderationIssue != null) {
+      await ActionFeedbackService.show(
+        context,
+        title: 'Icerik gonderilemedi',
+        message:
+            'Topluluk kurallarina aykiri gorunen bir ifade tespit edildi. Lutfen metni duzeltip tekrar deneyin.',
+        icon: Icons.report_gmailerrorred_rounded,
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
@@ -209,7 +226,12 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
         );
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      await ActionFeedbackService.show(
+        context,
+        title: 'İşlem tamamlanamadı',
+        message: '$e',
+        icon: Icons.error_outline_rounded,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

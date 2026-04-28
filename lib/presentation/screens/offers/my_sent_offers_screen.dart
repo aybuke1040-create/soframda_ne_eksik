@@ -1,9 +1,52 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/core/utils/request_visibility_utils.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
+import 'package:soframda_ne_eksik/services/moderation_service.dart';
 
 class MySentOffersScreen extends StatelessWidget {
   const MySentOffersScreen({super.key});
+
+  Future<List<_SentOfferItem>> _loadVisibleOffers(
+    List<QueryDocumentSnapshot> docs,
+    Set<String> blockedUserIds,
+  ) async {
+    final items = <_SentOfferItem>[];
+
+    for (final doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final requestId = (data['requestId'] ?? '').toString();
+      if (requestId.trim().isEmpty) {
+        continue;
+      }
+
+      final requestSnapshot = await FirebaseFirestore.instance
+          .collection('requests')
+          .doc(requestId)
+          .get();
+      final requestData = requestSnapshot.data();
+
+      if (!requestSnapshot.exists || !isRequestActiveForOffers(requestData)) {
+        continue;
+      }
+
+      final requestOwnerId = (requestData?['ownerId'] ?? '').toString();
+      if (blockedUserIds.contains(requestOwnerId)) {
+        continue;
+      }
+
+      items.add(
+        _SentOfferItem(
+          offerDoc: doc,
+          offerData: data,
+          requestData: requestData,
+        ),
+      );
+    }
+
+    return items;
+  }
 
   Future<void> _deleteOffer(
     BuildContext context,
@@ -11,10 +54,11 @@ class MySentOffersScreen extends StatelessWidget {
     String status,
   ) async {
     if (status != 'pending') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sadece bekleyen teklifler silinebilir.'),
-        ),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Teklif silinemez',
+        message: 'Sadece bekleyen teklifler silinebilir.',
+        icon: Icons.info_outline_rounded,
       );
       return;
     }
@@ -24,12 +68,12 @@ class MySentOffersScreen extends StatelessWidget {
           builder: (dialogContext) => AlertDialog(
             title: const Text('Teklif silinsin mi?'),
             content: const Text(
-              'Bu bekleyen teklif kaldırılacak. Bu işlem geri alınamaz.',
+              'Bu bekleyen teklif kaldirilacak. Bu islem geri alinamaz.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Vazgeç'),
+                child: const Text('Vazgec'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
@@ -49,15 +93,21 @@ class MySentOffersScreen extends StatelessWidget {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Teklif silindi.')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Teklif silindi',
+        message: 'Teklif silindi.',
+        icon: Icons.delete_outline_rounded,
       );
     } catch (e) {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Teklif silinemedi: $e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Teklif silinemedi',
+        message: 'Teklif silinemedi: $e',
+        icon: Icons.error_outline_rounded,
       );
     }
   }
@@ -66,116 +116,150 @@ class MySentOffersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('offers')
-          .where('senderId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return StreamBuilder<Set<String>>(
+      stream: ModerationService().watchBlockedUserIds(),
+      builder: (context, blockedSnapshot) {
+        final blockedUserIds = blockedSnapshot.data ?? const <String>{};
 
-        final docs = snapshot.data!.docs;
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('offers')
+              .where('senderId', isEqualTo: userId)
+              .orderBy('createdAt', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        if (docs.isEmpty) {
-          return const Center(
-            child: Text('Henuz gonderdigin teklif yok.'),
-          );
-        }
+            final docs = snapshot.data!.docs;
 
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
-          itemCount: docs.length,
-          itemBuilder: (context, index) {
-            final doc = docs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            final requestId = data['requestId'] as String? ?? '';
-            final price = data['price'];
-            final status = (data['status'] as String? ?? 'pending');
+            if (docs.isEmpty) {
+              return const Center(
+                child: Text('Henuz gonderdigin teklif yok.'),
+              );
+            }
 
-            return FutureBuilder<DocumentSnapshot?>(
-              future: requestId.trim().isEmpty
-                  ? Future.value(null)
-                  : FirebaseFirestore.instance
-                      .collection('requests')
-                      .doc(requestId)
-                      .get(),
-              builder: (context, requestSnapshot) {
-                final requestData = requestSnapshot.data?.data()
-                    as Map<String, dynamic>?;
-                final title = (requestData?['title'] as String?)?.trim();
-                final subtitle = _requestSubtitle(requestData);
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFE7E1D8)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x10000000),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(14),
-                    title: Text(
-                      title == null || title.isEmpty ? 'Ilan bilgisi bulunamadi' : title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
+            return FutureBuilder<List<_SentOfferItem>>(
+              future: _loadVisibleOffers(docs, blockedUserIds),
+              builder: (context, visibleSnapshot) {
+                if (visibleSnapshot.hasError) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                        'Teklifler su anda yuklenemedi.',
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            subtitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.grey.shade700),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              _StatusChip(
-                                label: _statusLabel(status),
-                                color: _statusColor(status),
-                              ),
-                              _StatusChip(
-                                label: price == null ? 'Fiyat belirtilmedi' : 'Teklifin: ₺$price',
-                                color: const Color(0xFF8B4A0F),
-                              ),
-                            ],
+                  );
+                }
+
+                if (!visibleSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final items = visibleSnapshot.data!;
+
+                if (items.isEmpty) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Text(
+                        'Gosterilebilecek teklif bulunamadi.',
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    final doc = item.offerDoc;
+                    final data = item.offerData;
+                    final requestData = item.requestData;
+                    final price = data['price'];
+                    final status = (data['status'] as String? ?? 'pending');
+                    final title = (requestData?['title'] as String?)?.trim();
+                    final subtitle = _requestSubtitle(requestData);
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFE7E1D8)),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x10000000),
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
                           ),
                         ],
                       ),
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: status == 'pending'
-                            ? Colors.red
-                            : Colors.grey.shade400,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(14),
+                        title: Text(
+                          title == null || title.isEmpty
+                              ? 'Ilan bilgisi bulunamadi'
+                              : title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                subtitle,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(color: Colors.grey.shade700),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  _StatusChip(
+                                    label: _statusLabel(status),
+                                    color: _statusColor(status),
+                                  ),
+                                  _StatusChip(
+                                    label: price == null
+                                        ? 'Fiyat belirtilmedi'
+                                        : 'Teklifin: ₺$price',
+                                    color: const Color(0xFF8B4A0F),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        trailing: IconButton(
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: status == 'pending'
+                                ? Colors.red
+                                : Colors.grey.shade400,
+                          ),
+                          onPressed: () => _deleteOffer(
+                            context,
+                            doc.reference,
+                            status,
+                          ),
+                        ),
                       ),
-                      onPressed: () => _deleteOffer(
-                        context,
-                        doc.reference,
-                        status,
-                      ),
-                    ),
-                  ),
+                    );
+                  },
                 );
               },
             );
@@ -231,6 +315,18 @@ class MySentOffersScreen extends StatelessWidget {
         return Colors.orange;
     }
   }
+}
+
+class _SentOfferItem {
+  final QueryDocumentSnapshot offerDoc;
+  final Map<String, dynamic> offerData;
+  final Map<String, dynamic>? requestData;
+
+  const _SentOfferItem({
+    required this.offerDoc,
+    required this.offerData,
+    required this.requestData,
+  });
 }
 
 class _StatusChip extends StatelessWidget {

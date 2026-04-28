@@ -5,8 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:soframda_ne_eksik/core/utils/content_moderation_utils.dart';
 import 'package:soframda_ne_eksik/core/utils/location_utils.dart';
 import 'package:soframda_ne_eksik/core/utils/request_visibility_utils.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
 
@@ -42,16 +44,16 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
   bool get _isEditing => widget.requestId != null;
 
   final Map<String, String> categories = const {
-    'dogum_gunu': 'Dogum Gunu',
+    'dogum_gunu': 'Doğum Günü',
     'baby_shower': 'Baby Shower',
-    'nisan': 'Nisan',
-    'bekarliga_veda': 'Bekarliga Veda',
+    'nisan': 'Nişan',
+    'bekarliga_veda': 'Bekarlığa Veda',
     'kurumsal': 'Kurumsal Etkinlik',
-    'dugun': 'Dugun',
-    'masa_duzeni': 'Masa Duzeni',
-    'backdrop': 'Backdrop Tasarimi',
-    'stand': 'Stand Tasarimi',
-    'diger': 'Diger',
+    'dugun': 'Düğün',
+    'masa_duzeni': 'Masa Düzeni',
+    'backdrop': 'Backdrop Tasarımı',
+    'stand': 'Stand Tasarımı',
+    'diger': 'Diğer',
   };
 
   @override
@@ -151,6 +153,22 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
       return;
     }
 
+    final moderationIssue = findObjectionableContent({
+      'title': titleController.text,
+      'description': descriptionController.text,
+      'location': locationController.text,
+    });
+    if (moderationIssue != null) {
+      await ActionFeedbackService.show(
+        context,
+        title: 'Icerik gonderilemedi',
+        message:
+            'Topluluk kurallarina aykiri gorunen bir ifade tespit edildi. Lutfen metni duzeltip tekrar deneyin.',
+        icon: Icons.report_gmailerrorred_rounded,
+      );
+      return;
+    }
+
     setState(() => isSubmitting = true);
 
     try {
@@ -177,7 +195,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
         'category': category,
         'imageUrl': imageUrl,
         'ownerId': user.uid,
-        'ownerName': userData['name'] ?? 'Kullanici',
+        'ownerName': userData['name'] ?? 'Kullanıcı',
         'requestType': 'design',
         'status': 'open',
         'latitude': pos.latitude,
@@ -212,9 +230,9 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
         if (!success) {
           PaywallService.showInsufficientCreditsSheet(
             context,
-            title: 'Organizasyon ilani vermek icin 10 kredi gerekiyor',
+            title: 'Organizasyon ilanı vermek için 10 kredi gerekiyor',
             message:
-                'Organizasyon ilaninizi yayina almak icin once kredi satin alabilir, sonra tek dokunusla devam edebilirsiniz.',
+                'Organizasyon ilanınızı yayına almak için önce kredi satın alabilir, sonra tek dokunuşla devam edebilirsiniz.',
             highlight: 'Organizasyon ilan paketleri',
           );
           return;
@@ -226,14 +244,13 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
       }
 
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isEditing
-                ? 'Organizasyon ilanı güncellendi.'
-                : 'Organizasyon ilanı yayına alındı.',
-          ),
-        ),
+      await ActionFeedbackService.show(
+        context,
+        title: _isEditing ? 'İlan güncellendi' : 'İlan yayına alındı',
+        message: _isEditing
+            ? 'Organizasyon ilanı güncellendi.'
+            : 'Organizasyon ilanı yayına alındı.',
+        icon: Icons.check_circle_outline_rounded,
       );
     } finally {
       if (mounted) {
@@ -247,7 +264,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _isEditing ? 'Organizasyon İlanıni Duzenle' : 'Organizasyon İlanı',
+          _isEditing ? 'Organizasyon İlanını Düzenle' : 'Organizasyon İlanı',
         ),
       ),
       body: isSubmitting
@@ -266,8 +283,8 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                   TextField(
                     controller: titleController,
                     decoration: const InputDecoration(
-                      labelText: 'Organizasyon Basligi',
-                      hintText: 'Orn: 30 kişilik butik nisan masasi ve backdrop tasarimi',
+                      labelText: 'Organizasyon Başlığı',
+                      hintText: 'Örn: 30 kişilik butik nişan masası ve backdrop tasarımı',
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -293,16 +310,16 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                     controller: guestController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Kac Kisilik',
-                      hintText: 'Orn: 25',
+                      labelText: 'Kaç Kişilik',
+                      hintText: 'Örn: 25',
                     ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: locationController,
                     decoration: const InputDecoration(
-                      labelText: 'Mekan / Ilce',
-                      hintText: 'Orn: Kadikoy, evde kurulum',
+                      labelText: 'Mekan / İlçe',
+                      hintText: 'Örn: Kadıköy, evde kurulum',
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -333,7 +350,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                     maxLines: 4,
                     decoration: const InputDecoration(
                       labelText: 'Detay',
-                      hintText: 'Renk paleti, masa adedi, cicek istegi, backdrop olcusu, karsilama panosu gibi beklentilerini yaz.',
+                      hintText: 'Renk paleti, masa adedi, çiçek isteği, backdrop ölçüsü, karşılama panosu gibi beklentilerini yaz.',
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -345,8 +362,8 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                       onPressed: createRequest,
                       child: Text(
                         _isEditing
-                            ? 'Degisiklikleri Kaydet'
-                            : '10 Kredi ile Premium Ilan Ver',
+                            ? 'Değişiklikleri Kaydet'
+                            : '10 Kredi ile Premium İlan Ver',
                       ),
                     ),
                   ),
@@ -372,7 +389,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Premium organizasyon ilani',
+            'Premium organizasyon ilanı',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -380,12 +397,12 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
           ),
           SizedBox(height: 8),
           Text(
-            'Nasil bir kurgu istedigini ne kadar net anlatirsan, tasarimcilar da sana o kadar hızlı ve isabetli teklif gonderir.',
+            'Nasıl bir kurgu istediğini ne kadar net anlatırsan, tasarımcılar da sana o kadar hızlı ve isabetli teklif gönderir.',
             style: TextStyle(height: 1.45),
           ),
           SizedBox(height: 10),
           Text(
-            'Ilan yayina alma bedeli: 10 kredi',
+            'İlan yayına alma bedeli: 10 kredi',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: Color(0xFFB85C00),
@@ -408,7 +425,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Daha iyi teklif icin bunlari ekle',
+            'Daha iyi teklif için bunları ekle',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 15,
@@ -416,9 +433,9 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
           ),
           SizedBox(height: 10),
           _DesignChecklistItem(text: 'Etkinlik tipi ve genel stil'),
-          _DesignChecklistItem(text: 'Kisi sayisi ve mekan bilgisi'),
-          _DesignChecklistItem(text: 'Tarih ve kurulum zamani'),
-          _DesignChecklistItem(text: 'Renk, cicek, masa veya pano beklentisi'),
+          _DesignChecklistItem(text: 'Kişi sayısı ve mekan bilgisi'),
+          _DesignChecklistItem(text: 'Tarih ve kurulum zamanı'),
+          _DesignChecklistItem(text: 'Renk, çiçek, masa veya pano beklentisi'),
         ],
       ),
     );
@@ -445,7 +462,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                   children: [
                     Icon(Icons.add_photo_alternate_outlined, size: 36),
                     SizedBox(height: 8),
-                    Text('Ilham gorseli veya mekan fotosu ekle'),
+                    Text('İlham görseli veya mekan fotosu ekle'),
                   ],
                     ),
                   ),
@@ -460,7 +477,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
     final location = locationController.text.trim();
     final detail = descriptionController.text.trim();
     final categoryLabel =
-        category.isEmpty ? 'Kategori secilmedi' : (categories[category] ?? category);
+        category.isEmpty ? 'Kategori seçilmedi' : (categories[category] ?? category);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -473,7 +490,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Ilan ozeti',
+            'İlan özeti',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               fontSize: 15,
@@ -481,7 +498,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            title.isEmpty ? 'Baslik burada gorunecek.' : title,
+            title.isEmpty ? 'Başlık burada görünecek.' : title,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -490,15 +507,15 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
           const SizedBox(height: 6),
           Text(categoryLabel),
           const SizedBox(height: 4),
-          Text(guest.isEmpty ? 'Kisi sayisi girilmedi' : '$guest kişilik'),
+          Text(guest.isEmpty ? 'Kişi sayısı girilmedi' : '$guest kişilik'),
           const SizedBox(height: 4),
           Text(location.isEmpty ? 'Mekan girilmedi' : location),
           const SizedBox(height: 4),
-          Text(date.isEmpty ? 'Tarih secilmedi' : date),
+          Text(date.isEmpty ? 'Tarih seçilmedi' : date),
           const SizedBox(height: 8),
           Text(
             detail.isEmpty
-                ? 'Detay eklediginde tasarimcilar senden ne istendigini daha iyi anlayacak.'
+                ? 'Detay eklediğinde tasarımcılar senden ne istendiğini daha iyi anlayacak.'
                 : detail,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,

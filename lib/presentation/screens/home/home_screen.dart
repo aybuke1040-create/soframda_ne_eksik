@@ -20,6 +20,7 @@ import 'package:soframda_ne_eksik/presentation/screens/requests/open_requests_sc
 import 'package:soframda_ne_eksik/presentation/widgets/credit_badge.dart';
 import 'package:soframda_ne_eksik/presentation/widgets/food_request_card.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
+import 'package:soframda_ne_eksik/services/moderation_service.dart';
 import 'package:soframda_ne_eksik/services/nearby_food_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -321,117 +322,129 @@ class _HomeScreenState extends State<HomeScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    final visibleFoods = foods.where((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      final type = (data['type'] ?? '').toString();
-      final ownerId = (data['ownerId'] ?? '').toString();
-      return type == 'ready_food' &&
-          (currentUserId == null || ownerId != currentUserId);
-    }).toList();
+    return StreamBuilder<Set<String>>(
+      stream: ModerationService().watchBlockedUserIds(),
+      builder: (context, blockedSnapshot) {
+        final blockedUserIds = blockedSnapshot.data ?? const <String>{};
+        final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+        final visibleFoods = foods.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final type = (data['type'] ?? '').toString();
+          final ownerId = (data['ownerId'] ?? '').toString();
+          return type == 'ready_food' &&
+              (currentUserId == null || ownerId != currentUserId) &&
+              !blockedUserIds.contains(ownerId);
+        }).toList();
 
-    if (visibleFoods.isEmpty) {
-      return Center(
-        child: Text(
-            context.t('Yakında yemek bulunamadı', 'No nearby meals found')),
-      );
-    }
-
-    final sortedFoods = visibleFoods.map((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      final request = RequestModel.fromFirestore(data, doc.id);
-      final geo = data['location']['geopoint'];
-
-      final distance = calculateDistance(
-        userLat!,
-        userLng!,
-        geo.latitude,
-        geo.longitude,
-      );
-
-      return {
-        "request": request,
-        "distance": distance,
-        "isFeatured": data['isFeatured'] == true,
-      };
-    }).toList();
-
-    if (!isFeaturedMode) {
-      sortedFoods.sort(
-        (a, b) => (a["distance"] as double).compareTo(b["distance"] as double),
-      );
-    }
-
-    final columns = _listingColumnCount(context);
-    final double childAspectRatio =
-        _isLandscapePhone(context) ? 1.0 : (_isTablet(context) ? 0.94 : 0.86);
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: columns,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: childAspectRatio,
-      ),
-      itemCount: sortedFoods.length,
-      itemBuilder: (context, index) {
-        final item = sortedFoods[index];
-        final request = item["request"] as RequestModel;
-        final distance = item["distance"] as double;
-        final isFeatured = item["isFeatured"] as bool;
-
-        return Stack(
-          children: [
-            FoodRequestCard(
-              request: {
-                "id": request.id,
-                "title": request.title,
-                "imageUrl": request.imageUrl,
-                "ownerId": request.ownerId,
-                "userName": request.ownerName,
-                "price": request.price,
-                "portion": request.portion,
-                "distance": distance,
-                "type": "ready_food",
-                "isReady": true,
-              },
-              showActions: false,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ReadyFoodDetailScreen(
-                      requestId: request.id,
-                    ),
-                  ),
-                );
-              },
+        if (visibleFoods.isEmpty) {
+          return Center(
+            child: Text(
+              context.t('Yakında yemek bulunamadı', 'No nearby meals found'),
             ),
-            if (isFeatured)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.orange,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    context.t('ÖNE ÇIKAN', 'FEATURED'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+          );
+        }
+
+        final sortedFoods = visibleFoods.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final request = RequestModel.fromFirestore(data, doc.id);
+          final geo = data['location']['geopoint'];
+
+          final distance = calculateDistance(
+            userLat!,
+            userLng!,
+            geo.latitude,
+            geo.longitude,
+          );
+
+          return {
+            "request": request,
+            "distance": distance,
+            "isFeatured": data['isFeatured'] == true,
+          };
+        }).toList();
+
+        if (!isFeaturedMode) {
+          sortedFoods.sort(
+            (a, b) =>
+                (a["distance"] as double).compareTo(b["distance"] as double),
+          );
+        }
+
+        final columns = _listingColumnCount(context);
+        final double childAspectRatio = _isLandscapePhone(context)
+            ? 1.0
+            : (_isTablet(context) ? 0.94 : 0.86);
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: childAspectRatio,
+          ),
+          itemCount: sortedFoods.length,
+          itemBuilder: (context, index) {
+            final item = sortedFoods[index];
+            final request = item["request"] as RequestModel;
+            final distance = item["distance"] as double;
+            final isFeatured = item["isFeatured"] as bool;
+
+            return Stack(
+              children: [
+                FoodRequestCard(
+                  request: {
+                    "id": request.id,
+                    "title": request.title,
+                    "imageUrl": request.imageUrl,
+                    "ownerId": request.ownerId,
+                    "userName": request.ownerName,
+                    "price": request.price,
+                    "portion": request.portion,
+                    "distance": distance,
+                    "type": "ready_food",
+                    "isReady": true,
+                  },
+                  showActions: false,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ReadyFoodDetailScreen(
+                          requestId: request.id,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                if (isFeatured)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        context.t('ÖNE ÇIKAN', 'FEATURED'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-          ],
+              ],
+            );
+          },
         );
       },
     );

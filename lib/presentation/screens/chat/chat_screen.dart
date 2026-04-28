@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/chat_service.dart';
+import 'package:soframda_ne_eksik/services/moderation_service.dart';
 import 'package:soframda_ne_eksik/services/offer_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
 import 'package:soframda_ne_eksik/services/profile_completion_guard.dart';
@@ -43,6 +44,110 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _canSendOffer = false;
   String? _pendingOutgoingText;
 
+  Future<String?> _pickModerationReason({
+    required String title,
+  }) async {
+    const reasons = <String>[
+      'Hakaret veya taciz',
+      'Uygunsuz icerik',
+      'Spam veya dolandiricilik',
+      'Tehdit veya guvensiz davranis',
+      'Diger',
+    ];
+
+    return showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...reasons.map((reason) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(reason),
+                      onTap: () => Navigator.pop(sheetContext, reason),
+                    )),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _reportUser() async {
+    if (otherUserId.isEmpty) {
+      return;
+    }
+    final reason = await _pickModerationReason(
+      title: 'Bu kullaniciyi neden sikayet etmek istiyorsun?',
+    );
+    if (reason == null) {
+      return;
+    }
+
+    await ModerationService().reportUser(
+      targetUserId: otherUserId,
+      reason: reason,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    await ActionFeedbackService.show(
+      context,
+      title: 'Sikayet alindi',
+      message:
+          '$otherUserName hakkindaki bildirimini aldik. Moderasyon ekibimiz 24 saat icinde inceleyecek.',
+      icon: Icons.flag_outlined,
+    );
+  }
+
+  Future<void> _blockUser() async {
+    if (otherUserId.isEmpty) {
+      return;
+    }
+    final reason = await _pickModerationReason(
+      title: 'Bu kullaniciyi neden engellemek istiyorsun?',
+    );
+    if (reason == null) {
+      return;
+    }
+
+    await ModerationService().blockUser(
+      targetUserId: otherUserId,
+      targetName: otherUserName,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    await ActionFeedbackService.show(
+      context,
+      title: 'Kullanici engellendi',
+      message:
+          '$otherUserName artik akisinda ve mesaj listende gorunmeyecek.',
+      icon: Icons.block_rounded,
+    );
+    Navigator.pop(context);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -78,7 +183,7 @@ class _ChatScreenState extends State<ChatScreen> {
           .collection('users')
           .doc(otherId)
           .get();
-      resolvedName = (userDoc.data()?['name'] ?? 'KullanÃƒâ€Ã‚Â±cÃƒâ€Ã‚Â±').toString();
+      resolvedName = (userDoc.data()?['name'] ?? 'Kullanıcı').toString();
     }
 
     String nextPendingOfferId = '';
@@ -163,16 +268,22 @@ class _ChatScreenState extends State<ChatScreen> {
         pendingOfferPrice = null;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Teklif kabul edildi')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Teklif kabul edildi',
+        message: 'Teklif kabul edildi.',
+        icon: Icons.check_circle_outline_rounded,
       );
     } catch (e) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Teklif kabul edilemedi: $e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Teklif kabul edilemedi',
+        message: 'Teklif kabul edilemedi: $e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {
@@ -406,6 +517,28 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(otherUserName),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'report') {
+                await _reportUser();
+              }
+              if (value == 'block') {
+                await _blockUser();
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem<String>(
+                value: 'report',
+                child: Text('Kullaniciyi Sikayet Et'),
+              ),
+              PopupMenuItem<String>(
+                value: 'block',
+                child: Text('Kullaniciyi Engelle'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [

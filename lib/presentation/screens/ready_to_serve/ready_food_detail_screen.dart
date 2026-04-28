@@ -11,8 +11,10 @@ import 'package:soframda_ne_eksik/presentation/widgets/floating_credit_animation
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/chat_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
+import 'package:soframda_ne_eksik/services/moderation_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
 import 'package:soframda_ne_eksik/services/profile_completion_guard.dart';
+import 'package:soframda_ne_eksik/services/request_delete_service.dart';
 
 class ReadyFoodDetailScreen extends StatefulWidget {
   final String requestId;
@@ -84,13 +86,16 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
   }
 
   Future<void> _deleteRequest() async {
-    await FirebaseFirestore.instance.collection('requests').doc(widget.requestId).delete();
+    await RequestDeleteService().deleteRequest(widget.requestId);
 
     if (!mounted) return;
 
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('İlan silindi')),
+    await ActionFeedbackService.show(
+      context,
+      title: 'İlan silindi',
+      message: 'Hazır yemek ilanın ve ilişkili kayıtlar kaldırıldı.',
+      icon: Icons.delete_outline_rounded,
     );
   }
 
@@ -115,10 +120,98 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sohbet açılamadı: $e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Sohbet açılamadı',
+        message: 'Sohbet açılamadı: $e',
+        icon: Icons.error_outline_rounded,
       );
     }
+  }
+
+  Future<String?> _pickModerationReason() async {
+    const reasons = <String>[
+      'Hakaret veya taciz',
+      'Uygunsuz icerik',
+      'Spam veya dolandiricilik',
+      'Tehdit veya guvensiz davranis',
+      'Diger',
+    ];
+
+    return showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bu ilani neden sikayet etmek istiyorsun?',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 12),
+                ...reasons.map(
+                  (reason) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(reason),
+                    onTap: () => Navigator.pop(sheetContext, reason),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _reportRequest(String ownerId, String title) async {
+    final reason = await _pickModerationReason();
+    if (reason == null) return;
+
+    await ModerationService().reportRequest(
+      requestId: widget.requestId,
+      ownerId: ownerId,
+      reason: reason,
+      metadata: {
+        'surface': 'ready_food_detail',
+        'title': title,
+      },
+    );
+
+    if (!mounted) return;
+    await ActionFeedbackService.show(
+      context,
+      title: 'Sikayet alindi',
+      message: 'Bildirim alindi. Moderasyon ekibimiz en gec 24 saat icinde inceleyecek.',
+      icon: Icons.flag_outlined,
+    );
+  }
+
+  Future<void> _blockOwner(String ownerId) async {
+    await ModerationService().blockUser(
+      targetUserId: ownerId,
+      reason: 'Hazir yemek ilaninda kullanici engellendi',
+      metadata: {
+        'surface': 'ready_food_detail',
+        'requestId': widget.requestId,
+      },
+    );
+
+    if (!mounted) return;
+    await ActionFeedbackService.show(
+      context,
+      title: 'Kullanici engellendi',
+      message: 'Bu kullanicinin ilanlari ve iletisimleri artik sana gosterilmeyecek.',
+      icon: Icons.block_outlined,
+    );
+    if (mounted) Navigator.pop(context);
   }
 
   Future<void> _placeOrder({
@@ -195,8 +288,11 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sipariş başlatılamadı: $e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Sipariş başlatılamadı',
+        message: 'Sipariş başlatılamadı: $e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {
@@ -305,6 +401,28 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
               SliverAppBar(
                 expandedHeight: 260,
                 pinned: true,
+                actions: [
+                  if (!isOwner)
+                    PopupMenuButton<String>(
+                      onSelected: (value) async {
+                        if (value == 'report') {
+                          await _reportRequest(ownerId, title);
+                        } else if (value == 'block') {
+                          await _blockOwner(ownerId);
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem<String>(
+                          value: 'report',
+                          child: Text('Ilani Sikayet Et'),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'block',
+                          child: Text('Kullaniciyi Engelle'),
+                        ),
+                      ],
+                    ),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: imageUrl.isNotEmpty
                       ? Image.network(imageUrl, fit: BoxFit.cover)

@@ -1,84 +1,86 @@
 export const siteConfig = {
-  name: "Ben Yaparım",
+  name: "Ben Yaparim",
   domain: "https://benyaparimci.com",
   supportEmail: "destek@benyaparimci.com",
   nav: [
-    { href: "/", label: "Ana Sayfa" },
-    { href: "/download", label: "Uygulamayı İndir" },
-    { href: "/support", label: "Destek" },
-    { href: "/privacy", label: "Gizlilik" }
+    {href: "/", label: "Ana Sayfa"},
+    {href: "/download", label: "Uygulamayi Indir"},
+    {href: "/support", label: "Destek"},
+    {href: "/terms", label: "Kullanim Kosullari"},
+    {href: "/privacy", label: "Gizlilik"},
   ],
   footerNav: [
-    { href: "/privacy", label: "Gizlilik Politikası" },
-    { href: "/support", label: "Destek" },
-    { href: "/delete-account", label: "Hesap Silme" }
+    {href: "/terms", label: "Kullanim Kosullari"},
+    {href: "/privacy", label: "Gizlilik Politikasi"},
+    {href: "/support", label: "Destek"},
+    {href: "/delete-account", label: "Hesap Silme"},
   ],
   appLinks: {
     android: "https://play.google.com/store/apps/details?id=com.benyaparim.app",
-    ios: "https://benyaparimci.com/download#ios"
-  }
+    ios: "",
+  },
 } as const;
 
 export const steps = [
   {
-    title: "İlan ver",
-    copy: "İhtiyacını birkaç net cümleyle paylaş. Yemekten organizasyona kadar ne aradığını doğru şekilde anlat."
+    title: "Ilan ver",
+    copy: "Ihtiyacini birkac net cumleyle paylas. Yemekten organizasyona kadar ne aradigini dogru sekilde anlat.",
   },
   {
     title: "Teklif al",
-    copy: "Yakınındaki uygun kişiler sana hızlıca dönüş yapsın. Seçeneklerini tek ekranda rahatça karşılaştır."
+    copy: "Yakinindaki uygun kisiler sana hizlica donus yapsin. Seceneklerini tek ekranda rahatca karsilastir.",
   },
   {
-    title: "Mesajlaş",
-    copy: "Detayları uygulama içinden konuş. Teslim zamanı, beklenti ve fiyat gibi konuları hızlıca netleştir."
+    title: "Mesajlas",
+    copy: "Detaylari uygulama icinden konus. Teslim zamani, beklenti ve fiyat gibi konulari hizlica netlestir.",
   },
   {
-    title: "Güvenle ilerle",
-    copy: "Süreci tek yerden yönet, doğru kişiyle kolayca buluş ve kararını daha rahat ver."
-  }
+    title: "Guvenle ilerle",
+    copy: "Sureci tek yerden yonet, dogru kisiyle kolayca bulus ve kararini daha rahat ver.",
+  },
 ] as const;
 
 export const categories = [
-  "Ben Yaparım",
-  "Ben Taşırım",
+  "Ben Yaparim",
+  "Ben Tasirim",
   "Ben Dizayn Ederim",
-  "Hazır Yemekler"
+  "Hazir Yemekler",
 ] as const;
 
 export const trustPoints = [
   {
-    title: "Kolay kullanım",
-    copy: "Anlaşılır akışlar sayesinde ilan açmak, teklifleri görmek ve iletişimi sürdürmek çok daha pratik."
+    title: "Kolay kullanim",
+    copy: "Anlasilir akislar sayesinde ilan acmak, teklifleri gormek ve iletisimi surdurmek cok daha pratik.",
   },
   {
-    title: "Hızlı teklif",
-    copy: "İhtiyacını paylaştıktan sonra beklemeden geri dönüş alabilir, kararını daha kısa sürede verebilirsin."
+    title: "Hizli teklif",
+    copy: "Ihtiyacini paylastiktan sonra beklemeden geri donus alabilir, kararini daha kisa surede verebilirsin.",
   },
   {
-    title: "Yerel fırsatlar",
-    copy: "Sana yakın hizmet verenleri keşfet, iletişimi hızlandır ve doğru eşleşmeye daha kolay ulaş."
-  }
+    title: "Yerel firsatlar",
+    copy: "Sana yakin hizmet verenleri kesfet, iletisimi hizlandir ve dogru eslesmeye daha kolay ulas.",
+  },
 ] as const;
 
 export const faqs = [
   {
-    question: "Hesabıma giremiyorum, ne yapmalıyım?",
+    question: "Hesabima giremiyorum, ne yapmaliyim?",
     answer:
-      "Giriş, doğrulama veya hesap bilgileriyle ilgili bir sorun yaşıyorsan destek ekibimize yazabilir ve kullandığın iletişim bilgisini paylaşabilirsin."
+      "Giris, dogrulama veya hesap bilgileriyle ilgili bir sorun yasiyorsan destek ekibimize yazabilir ve kullandigin iletisim bilgisini paylasabilirsin.",
   },
   {
     question: "Teklifler neden gelmiyor?",
     answer:
-      "İlanın yeterince açık değilse ya da konum bilgisi eksikse görünürlüğün düşebilir. Daha net bir açıklama ve doğru bilgilerle daha hızlı dönüş alırsın."
+      "Ilanin yeterince acik degilse ya da konum bilgisi eksikse gorunurlugun dusebilir. Daha net bir aciklama ve dogru bilgilerle daha hizli donus alirsin.",
   },
   {
-    question: "Sipariş veya hizmet sürecinde nasıl iletişim kurarım?",
+    question: "Uygunsuz icerik veya kotuye kullanim gordugumde ne yapabilirim?",
     answer:
-      "Eşleştiğin kişiyle uygulama içindeki mesajlaşma alanından doğrudan iletişim kurabilir, tüm detayları aynı yerde yönetebilirsin."
+      "Uygulama icinden kullaniciyi engelleyebilir, kullaniciyi veya icerigi sikayet edebilir ve destek ekibimize ulasabilirsin. Raporlanan icerikleri en gec 24 saat icinde inceler, gerekirse kaldirir ve ihlal eden hesaplari kapatiriz.",
   },
   {
     question: "Bildirimler gelmiyor, ne kontrol etmeliyim?",
     answer:
-      "Telefonundaki bildirim izinlerini ve uygulama içi ayarları kontrol et. Sorun sürerse destek ekibimize ulaşabilirsin."
-  }
+      "Telefonundaki bildirim izinlerini ve uygulama ici ayarlari kontrol et. Sorun surerse destek ekibimize ulasabilirsin.",
+  },
 ] as const;

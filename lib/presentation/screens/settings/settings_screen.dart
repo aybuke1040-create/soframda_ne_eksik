@@ -4,10 +4,13 @@ import 'package:soframda_ne_eksik/core/auth_wrapper.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/data/services/auth_service.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/edit_profile_screen.dart';
+import 'package:soframda_ne_eksik/presentation/screens/settings/blocked_users_screen.dart';
+import 'package:soframda_ne_eksik/presentation/screens/settings/community_terms_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/contact_us_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/kvkk_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/location_settings_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/notification_settings_screen.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -142,16 +145,22 @@ class SettingsScreen extends StatelessWidget {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.t('Hesap silindi', 'Account deleted'))),
+      await ActionFeedbackService.show(
+        context,
+        title: context.t('Hesap silindi', 'Account deleted'),
+        message: context.t('Hesap silindi.', 'Account deleted.'),
+        icon: Icons.delete_outline_rounded,
       );
     } catch (e) {
       if (!context.mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("${context.t('Hata', 'Error')}: $e")),
+      await ActionFeedbackService.show(
+        context,
+        title: context.t('Hata', 'Error'),
+        message: "${context.t('Hata', 'Error')}: $e",
+        icon: Icons.error_outline_rounded,
       );
     }
   }
@@ -326,6 +335,30 @@ class SettingsScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (_) => const LocationSettingsScreen(),
+                ),
+              );
+            },
+          ),
+          _tile(
+            icon: Icons.gavel_outlined,
+            title: 'Topluluk Kurallari',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const CommunityTermsScreen(),
+                ),
+              );
+            },
+          ),
+          _tile(
+            icon: Icons.block_outlined,
+            title: 'Engelledigim Kullanicilar',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const BlockedUsersScreen(),
                 ),
               );
             },

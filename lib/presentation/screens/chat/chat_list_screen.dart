@@ -1,6 +1,8 @@
 ﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
+import 'package:soframda_ne_eksik/services/moderation_service.dart';
 
 import 'chat_screen.dart';
 
@@ -73,8 +75,11 @@ class ChatListScreen extends StatelessWidget {
     });
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sohbet listeden kaldırıldı.')),
+      await ActionFeedbackService.showMessage(
+        context,
+        title: 'Sohbet kaldırıldı',
+        message: 'Sohbet listeden kaldırıldı.',
+        icon: Icons.delete_outline_rounded,
       );
     }
   }
@@ -93,115 +98,137 @@ class ChatListScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mesajlar')),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('chats')
-            .where('users', arrayContains: currentUserId)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Mesajlar yüklenirken bir hata oluştu.',
-                  textAlign: TextAlign.center,
+      body: StreamBuilder<Set<String>>(
+        stream: ModerationService().watchBlockedUserIds(),
+        builder: (context, blockedSnapshot) {
+          final blockedUserIds = blockedSnapshot.data ?? const <String>{};
+
+          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: FirebaseFirestore.instance
+                .collection('chats')
+                .where('users', arrayContains: currentUserId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'Mesajlar yüklenirken bir hata oluştu.',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }
+
+              if (snapshot.connectionState == ConnectionState.waiting &&
+                  !snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final chats = [...(snapshot.data?.docs ?? const [])]
+                  .where((doc) {
+                    final data = doc.data();
+                    final deletedFor = Map<String, dynamic>.from(
+                      data['deletedFor'] ?? const {},
+                    );
+                    final users = List<String>.from(data['users'] ?? const []);
+                    final otherUserId = users.firstWhere(
+                      (id) => id != currentUserId,
+                      orElse: () => '',
+                    );
+                    return deletedFor[currentUserId] != true &&
+                        (otherUserId.isEmpty ||
+                            !blockedUserIds.contains(otherUserId));
+                  })
+                  .toList()
+                ..sort((a, b) {
+                  final aTime = a.data()['lastMessageTime'];
+                  final bTime = b.data()['lastMessageTime'];
+                  final aMs =
+                      aTime is Timestamp ? aTime.millisecondsSinceEpoch : 0;
+                  final bMs =
+                      bTime is Timestamp ? bTime.millisecondsSinceEpoch : 0;
+                  return bMs.compareTo(aMs);
+                });
+
+              if (chats.isEmpty) {
+                return const Center(
+                  child: Text('Henüz mesaj yok'),
+                );
+              }
+
+              return GridView.builder(
+                padding: const EdgeInsets.all(12),
+                gridDelegate:
+                    const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.95,
                 ),
-              ),
-            );
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final chats = [...(snapshot.data?.docs ?? const [])]
-              .where((doc) {
-                final deletedFor =
-                    Map<String, dynamic>.from(doc.data()['deletedFor'] ?? const {});
-                return deletedFor[currentUserId] != true;
-              })
-              .toList()
-            ..sort((a, b) {
-              final aTime = a.data()['lastMessageTime'];
-              final bTime = b.data()['lastMessageTime'];
-              final aMs = aTime is Timestamp ? aTime.millisecondsSinceEpoch : 0;
-              final bMs = bTime is Timestamp ? bTime.millisecondsSinceEpoch : 0;
-              return bMs.compareTo(aMs);
-            });
-
-          if (chats.isEmpty) {
-            return const Center(
-              child: Text('Henüz mesaj yok'),
-            );
-          }
-
-          return GridView.builder(
-            padding: const EdgeInsets.all(12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.95,
-            ),
-            itemCount: chats.length,
-            itemBuilder: (context, index) {
-              final chat = chats[index];
-              final data = chat.data();
-              final users = List<String>.from(data['users'] ?? const []);
-              final otherUserId = users.firstWhere(
-                (id) => id != currentUserId,
-                orElse: () => '',
-              );
-
-              final names = Map<String, dynamic>.from(data['names'] ?? const {});
-              final photos =
-                  Map<String, dynamic>.from(data['photos'] ?? const {});
-              final lastMessage = (data['lastMessage'] ?? '').toString();
-              final unreadCount =
-                  (data['unreadCount'] is int) ? data['unreadCount'] as int : 0;
-
-              if (otherUserId.isEmpty) {
-                  return _ChatItem(
-                    chatId: chat.id,
-                    name: 'Sohbet',
-                    photoUrl: '',
-                    lastMessage: lastMessage,
-                    unreadCount: unreadCount,
-                    onDelete: () => _hideChatForCurrentUser(
-                      context,
-                      chat.id,
-                      currentUserId,
-                    ),
+                itemCount: chats.length,
+                itemBuilder: (context, index) {
+                  final chat = chats[index];
+                  final data = chat.data();
+                  final users = List<String>.from(data['users'] ?? const []);
+                  final otherUserId = users.firstWhere(
+                    (id) => id != currentUserId,
+                    orElse: () => '',
                   );
-                }
 
-              return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                future: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(otherUserId)
-                    .get(),
-                builder: (context, userSnapshot) {
-                  final userData = userSnapshot.data?.data() ?? const {};
-                  final fallbackName = (userData['name'] ?? '').toString().trim();
-                  final displayName =
-                      (names[otherUserId] ?? fallbackName).toString().trim();
-                  final photoUrl =
-                      (photos[otherUserId] ?? userData['photoUrl'] ?? '')
-                          .toString();
+                  final names =
+                      Map<String, dynamic>.from(data['names'] ?? const {});
+                  final photos =
+                      Map<String, dynamic>.from(data['photos'] ?? const {});
+                  final lastMessage = (data['lastMessage'] ?? '').toString();
+                  final unreadCount = (data['unreadCount'] is int)
+                      ? data['unreadCount'] as int
+                      : 0;
 
-                  return _ChatItem(
-                    chatId: chat.id,
-                    name: displayName.isEmpty ? 'Kullanıcı' : displayName,
-                    photoUrl: photoUrl,
-                    lastMessage: lastMessage,
-                    unreadCount: unreadCount,
-                    onDelete: () => _hideChatForCurrentUser(
-                      context,
-                      chat.id,
-                      currentUserId,
-                    ),
+                  if (otherUserId.isEmpty) {
+                    return _ChatItem(
+                      chatId: chat.id,
+                      name: 'Sohbet',
+                      photoUrl: '',
+                      lastMessage: lastMessage,
+                      unreadCount: unreadCount,
+                      onDelete: () => _hideChatForCurrentUser(
+                        context,
+                        chat.id,
+                        currentUserId,
+                      ),
+                    );
+                  }
+
+                  return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                    future: FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(otherUserId)
+                        .get(),
+                    builder: (context, userSnapshot) {
+                      final userData = userSnapshot.data?.data() ?? const {};
+                      final fallbackName =
+                          (userData['name'] ?? '').toString().trim();
+                      final displayName =
+                          (names[otherUserId] ?? fallbackName).toString().trim();
+                      final photoUrl =
+                          (photos[otherUserId] ?? userData['photoUrl'] ?? '')
+                              .toString();
+
+                      return _ChatItem(
+                        chatId: chat.id,
+                        name: displayName.isEmpty ? 'Kullanıcı' : displayName,
+                        photoUrl: photoUrl,
+                        lastMessage: lastMessage,
+                        unreadCount: unreadCount,
+                        onDelete: () => _hideChatForCurrentUser(
+                          context,
+                          chat.id,
+                          currentUserId,
+                        ),
+                      );
+                    },
                   );
                 },
               );
