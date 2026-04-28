@@ -63,7 +63,8 @@ class MySentOffersScreen extends StatelessWidget {
       return;
     }
 
-    final shouldDelete = await showDialog<bool>(
+    final shouldDelete =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Teklif silinsin mi?'),

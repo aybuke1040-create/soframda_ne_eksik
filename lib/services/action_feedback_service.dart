@@ -1,17 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/main.dart';
 
 class ActionFeedbackService {
+  static Future<void> showMessage(
+    BuildContext context, {
+    String title = 'Bilgi',
+    required String message,
+    IconData icon = Icons.info_outline_rounded,
+  }) {
+    return show(
+      context,
+      title: title,
+      message: message,
+      icon: icon,
+    );
+  }
+
   static Future<void> show(
     BuildContext context, {
     required String title,
     required String message,
     IconData icon = Icons.auto_awesome_rounded,
   }) {
+    final presentationContext = navigatorKey.currentContext ?? context;
+
     return showModalBottomSheet<void>(
-      context: context,
+      context: presentationContext,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (_) {
+      builder: (sheetContext) {
         return Container(
           padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
           decoration: const BoxDecoration(
@@ -70,7 +88,7 @@ class ActionFeedbackService {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pop(sheetContext),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF3A1D07),
                       foregroundColor: Colors.white,

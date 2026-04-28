@@ -88,14 +88,15 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
 
     await ActionFeedbackService.showMessage(
       context,
-      title: isFavorite ? 'Favorilere eklendi' : 'Favorilerden çıkarıldı',
-      message: isFavorite ? 'Favorilere eklendi.' : 'Favorilerden çıkarıldı.',
+      title: isFavorite ? 'Favorilere eklendi' : 'Favorilerden cikarildi',
+      message: isFavorite ? 'Favorilere eklendi.' : 'Favorilerden cikarildi.',
       icon: isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
     );
   }
 
   Future<void> _deleteRequest() async {
-    final shouldDelete = await showDialog<bool>(
+    final shouldDelete =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Ilan silinsin mi?'),
@@ -267,9 +268,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
         final requestData = requestSnapshot.data?.data() ?? <String, dynamic>{};
         final bool isFeatured = requestData['isFeatured'] == true;
         final Timestamp? featuredUntil = requestData['featuredUntil'] as Timestamp?;
-        final bool isFeatureActive = isFeatured &&
-            featuredUntil != null &&
-            featuredUntil.toDate().isAfter(DateTime.now());
+        final bool isFeatureActive =
+            isFeatured && featuredUntil != null && featuredUntil.toDate().isAfter(DateTime.now());
 
         return Scaffold(
           appBar: AppBar(
@@ -372,9 +372,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                                     if (isFeatureActive) {
                                       await ActionFeedbackService.show(
                                         context,
-                                        title: 'Bu ilan zaten öne çıkarılmış',
-                                        message:
-                                            'Bu ilan zaten öne çıkarılmış durumda.',
+                                        title: 'Bu ilan zaten one cikarilmis',
+                                        message: 'Bu ilan zaten one cikarilmis durumda.',
                                         icon: Icons.verified_rounded,
                                       );
                                       return;
@@ -400,8 +399,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                                     if (success && mounted) {
                                       await ActionFeedbackService.show(
                                         context,
-                                        title: 'İlan öne çıkarıldı',
-                                        message: 'İlan öne çıkarıldı.',
+                                        title: 'Ilan one cikarildi',
+                                        message: 'Ilan one cikarildi.',
                                         icon: Icons.star_rounded,
                                       );
                                     }

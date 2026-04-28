@@ -2,6 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 const int kReadyFoodLifetimeDays = 2;
 const int kDefaultRequestLifetimeDays = 7;
+const Set<String> kInactiveRequestStatuses = {
+  'completed',
+  'deleted',
+  'cancelled',
+  'canceled',
+  'closed',
+  'expired',
+};
 
 int getPublicRequestLifetimeDays(Map<String, dynamic> data) {
   final requestType = (data['requestType'] ?? data['type'] ?? '').toString();
@@ -16,6 +24,11 @@ int getPublicRequestLifetimeDays(Map<String, dynamic> data) {
 
 bool isRequestVisibleForPublic(Map<String, dynamic> data, {DateTime? now}) {
   final currentTime = now ?? DateTime.now();
+  final status = (data['status'] ?? '').toString().toLowerCase().trim();
+
+  if (kInactiveRequestStatuses.contains(status)) {
+    return false;
+  }
 
   final expiresAt = data['expiresAt'];
   if (expiresAt is Timestamp) {
@@ -32,6 +45,19 @@ bool isRequestVisibleForPublic(Map<String, dynamic> data, {DateTime? now}) {
   }
 
   return true;
+}
+
+bool isRequestActiveForOffers(Map<String, dynamic>? data, {DateTime? now}) {
+  if (data == null) {
+    return false;
+  }
+
+  final status = (data['status'] ?? '').toString().toLowerCase().trim();
+  if (kInactiveRequestStatuses.contains(status)) {
+    return false;
+  }
+
+  return isRequestVisibleForPublic(data, now: now);
 }
 
 Timestamp buildPublicExpiryTimestamp({
