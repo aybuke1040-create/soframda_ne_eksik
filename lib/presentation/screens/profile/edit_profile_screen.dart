@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -109,8 +110,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final trimmedName = nameController.text.trim();
 
     if (trimmedName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('İsim boş olamaz')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'İsim gerekli',
+        message: 'İsim boş olamaz.',
+        icon: Icons.info_outline_rounded,
       );
       return;
     }
@@ -133,9 +137,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (!mounted) {
         return;
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profil güncellendi')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Profil güncellendi',
+        message: 'Profil güncellendi.',
+        icon: Icons.check_circle_outline_rounded,
       );
       Navigator.pop(context, true);
     } catch (e) {
@@ -143,8 +149,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Profil güncellenemedi: $e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Profil güncellenemedi',
+        message: 'Profil güncellenemedi: $e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {

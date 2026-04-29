@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/presentation/screens/review/create_review_screen.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/request_completion_service.dart';
 
 class MyJobsScreen extends StatelessWidget {
@@ -165,14 +166,15 @@ class MyJobsScreen extends StatelessWidget {
                           return;
                         }
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              result['completed'] == true
-                                  ? '\u0130\u015f tamamland\u0131. Yorum ekran\u0131 a\u00e7\u0131l\u0131yor.'
-                                  : '\u0130lan sahibinin tamamland\u0131 onay\u0131 bekleniyor.',
-                            ),
-                          ),
+                        await ActionFeedbackService.show(
+                          context,
+                          title: result['completed'] == true
+                              ? 'İş tamamlandı'
+                              : 'Onay bekleniyor',
+                          message: result['completed'] == true
+                              ? 'İş tamamlandı. Yorum ekranı açılıyor.'
+                              : 'İlan sahibinin tamamlandı onayı bekleniyor.',
+                          icon: Icons.check_circle_outline_rounded,
                         );
                       },
                       child: const Text('Tamamland\u0131 De'),

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/presentation/screens/maps/location_picker_screen.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class LocationSettingsScreen extends StatefulWidget {
   const LocationSettingsScreen({super.key});
@@ -150,22 +151,26 @@ class _LocationSettingsScreenState extends State<LocationSettingsScreen> {
           ? 'Konum bilgisi güncellendi.'
           : 'Konum bilgisi şu an alınamadı. Cihaz konumunu ve interneti kontrol edin.';
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+      await ActionFeedbackService.show(
+        context,
+        title: position != null ? 'Konum güncellendi' : 'Konum alınamadı',
+        message: message,
+        icon: position != null
+            ? Icons.check_circle_outline_rounded
+            : Icons.info_outline_rounded,
       );
     } catch (e) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e is TimeoutException
-                ? 'Konum güncellemesi zaman aşımına uğradı. Lütfen tekrar deneyin.'
-                : 'Konum güncellenemedi: $e',
-          ),
-        ),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Konum güncellenemedi',
+        message: e is TimeoutException
+            ? 'Konum güncellemesi zaman aşımına uğradı. Lütfen tekrar deneyin.'
+            : 'Konum güncellenemedi: $e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {

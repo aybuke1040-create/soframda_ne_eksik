@@ -1,5 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class WriteReviewScreen extends StatefulWidget {
   final String requestId;
@@ -46,8 +47,11 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('$e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Yorum gönderilemedi',
+        message: '$e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {

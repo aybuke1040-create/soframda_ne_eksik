@@ -510,7 +510,7 @@ exports.reportContent = onCall(async (request) => {
 
 exports.blockUser = onCall(async (request) => {
   const uid = request.auth && request.auth.uid;
-  const {targetUserId, reason, details} = request.data || {};
+  const {targetUserId, targetName, reason, details} = request.data || {};
 
   if (!uid) {
     throw new HttpsError("unauthenticated", "User not logged in");
@@ -528,8 +528,11 @@ exports.blockUser = onCall(async (request) => {
   const batch = db.batch();
   batch.set(blockRef, {
     blockedUserId: normalizedTargetUserId,
+    targetUserId: normalizedTargetUserId,
+    targetName: String(targetName || "").trim(),
     reason: String(reason || "blocked_user").trim(),
     details: String(details || "").trim(),
+    blockedAt: admin.firestore.FieldValue.serverTimestamp(),
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   batch.set(accountRef, {

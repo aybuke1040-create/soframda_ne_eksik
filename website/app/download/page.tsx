@@ -35,7 +35,7 @@ export default function DownloadPage() {
           buttonLabel="App Store yayını yakında"
           href={siteConfig.appLinks.ios}
           qrSrc="/qr/ios.svg"
-          note="iPhone sürümü App Store yayını tamamlandığında aynı sayfadan güncellenecek. Şimdilik QR kodu ve bu sayfa üzerinden en doğru bilgiye ulaşabilirsin."
+          note="iPhone sürümü App Store yayını tamamlandığında bu alan doğrudan mağaza sayfasına yönlenecek. Şimdilik yanlışlıkla web sitesini uygulama gibi kurdurmamak için butonu pasif tuttuk."
         />
       </div>
     </div>

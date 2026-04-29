@@ -36,6 +36,7 @@ class UserService {
     await userDoc.collection("private").doc("account").set({
       "phoneNumber": user.phoneNumber ?? "",
       "email": user.email ?? "",
+      "blockedUserIds": FieldValue.arrayUnion([]),
       "updatedAt": FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
     await userDoc.set({

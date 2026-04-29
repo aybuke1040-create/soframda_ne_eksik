@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 enum PurchaseFlowStatus {
   success,
@@ -64,6 +66,8 @@ class IAPService {
         message: 'Bu satin alma istegi zaten isleniyor.',
       );
     }
+
+    await _recoverAndroidOwnedProductIfNeeded(product.id);
 
     final completer = Completer<PurchaseFlowResult>();
     _pendingPurchases[product.id] = completer;
@@ -155,6 +159,7 @@ class IAPService {
       final grantedCredits = (data['grantedCredits'] as num?)?.toInt() ?? 0;
       final alreadyGranted = data['alreadyGranted'] == true;
 
+      await _consumeAndroidPurchaseIfNeeded(purchase);
       await _completePendingPurchaseIfNeeded(purchase);
 
       _completePurchaseResult(
@@ -188,6 +193,39 @@ class IAPService {
   Future<void> _completePendingPurchaseIfNeeded(PurchaseDetails purchase) async {
     if (purchase.pendingCompletePurchase) {
       await _iap.completePurchase(purchase);
+    }
+  }
+
+  Future<void> _consumeAndroidPurchaseIfNeeded(PurchaseDetails purchase) async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+
+    final androidAddition =
+        _iap.getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+    await androidAddition.consumePurchase(purchase);
+  }
+
+  Future<void> _recoverAndroidOwnedProductIfNeeded(String productId) async {
+    if (defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+
+    final androidAddition =
+        _iap.getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+    final response = await androidAddition.queryPastPurchases();
+
+    for (final purchase in response.pastPurchases) {
+      if (purchase.productID != productId) {
+        continue;
+      }
+
+      if (purchase.status == PurchaseStatus.purchased ||
+          purchase.status == PurchaseStatus.restored) {
+        await _verifyAndGrantPurchase(purchase);
+      } else {
+        await _completePendingPurchaseIfNeeded(purchase);
+      }
     }
   }
 

@@ -1,9 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
+﻿import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/profile_screen.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/offer_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
 
@@ -332,10 +333,11 @@ class FoodRequestCard extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             _icon(Icons.edit, Colors.blue, () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Düzenleme yakında"),
-                                ),
+                              ActionFeedbackService.show(
+                                context,
+                                title: 'Düzenleme yakında',
+                                message: 'Düzenleme yakında.',
+                                icon: Icons.edit_outlined,
                               );
                             }),
                             _icon(Icons.delete, Colors.red, () async {
@@ -345,10 +347,11 @@ class FoodRequestCard extends StatelessWidget {
                                   .delete();
                             }),
                             _icon(Icons.star, Colors.orange, () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Öne çıkarıldı"),
-                                ),
+                              ActionFeedbackService.show(
+                                context,
+                                title: 'Öne çıkarıldı',
+                                message: 'Öne çıkarıldı.',
+                                icon: Icons.star_rounded,
                               );
                             }),
                           ],
@@ -434,15 +437,15 @@ class FoodRequestCard extends StatelessWidget {
                                             return;
                                           }
 
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                isReadyRequest
-                                                    ? 'Siparis gonderildi.'
-                                                    : 'Teklif gonderildi.',
-                                              ),
-                                            ),
+                                          await ActionFeedbackService.show(
+                                            context,
+                                            title: isReadyRequest
+                                                ? 'Sipariş gönderildi'
+                                                : 'Teklif gönderildi',
+                                            message: isReadyRequest
+                                                ? 'Sipariş gönderildi.'
+                                                : 'Teklif gönderildi.',
+                                            icon: Icons.check_circle_outline_rounded,
                                           );
                                         },
                                 );

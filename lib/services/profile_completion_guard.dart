@@ -79,7 +79,7 @@ class ProfileCompletionGuard {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Devam etmeden Ã¶nce profil sekmesinden kullanıcı adÄ±nÄ±zÄ± dÃ¼zenleyiniz.',
+                      'Devam etmeden önce profil sekmesinden kullanıcı adınızı düzenleyiniz.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF6B6B6B),

@@ -341,7 +341,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           _tile(
             icon: Icons.gavel_outlined,
-            title: 'Topluluk Kurallari',
+            title: 'Topluluk Kuralları',
             onTap: () {
               Navigator.push(
                 context,
@@ -353,7 +353,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           _tile(
             icon: Icons.block_outlined,
-            title: 'Engelledigim Kullanicilar',
+            title: 'Engellediğim Kullanıcılar',
             onTap: () {
               Navigator.push(
                 context,

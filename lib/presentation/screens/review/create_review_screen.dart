@@ -1,5 +1,6 @@
-import 'package:cloud_functions/cloud_functions.dart';
+﻿import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class CreateReviewScreen extends StatefulWidget {
   final String toUserId;
@@ -47,20 +48,22 @@ class _CreateReviewScreenState extends State<CreateReviewScreen> {
       if (!mounted) {
         return;
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Puanın ve yorumun kaydedildi.'),
-        ),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Yorum kaydedildi',
+        message: 'Puanın ve yorumun kaydedildi.',
+        icon: Icons.star_rounded,
       );
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) {
         return;
       }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Yorum gönderilemedi: $e')),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Yorum gönderilemedi',
+        message: 'Yorum gönderilemedi: $e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {

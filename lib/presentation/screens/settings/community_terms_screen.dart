@@ -68,7 +68,7 @@ class _CommunityTermsScreenState extends State<CommunityTermsScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: !widget.requiredAcceptance,
-          title: const Text('Topluluk Kurallari'),
+          title: const Text('Topluluk Kurallar\u0131'),
         ),
         body: SafeArea(
           child: Padding(
@@ -90,7 +90,7 @@ class _CommunityTermsScreenState extends State<CommunityTermsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Icerik ve davranis kurallari',
+                              '\u0130\u00e7erik ve davran\u0131\u015f kurallar\u0131',
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 fontSize: 18,
@@ -98,7 +98,11 @@ class _CommunityTermsScreenState extends State<CommunityTermsScreen> {
                             ),
                             SizedBox(height: 8),
                             Text(
-                              'Ben Yaparim icinde ilanlar, teklifler, mesajlar ve yorumlar kullanicilar tarafindan olusturulur. Uygulamayi kullanmaya devam ederek bu kurallara uymayi kabul etmis olursun.',
+                              'Ben Yapar\u0131m i\u00e7inde ilanlar, teklifler, '
+                              'mesajlar ve yorumlar kullan\u0131c\u0131lar '
+                              'taraf\u0131ndan olu\u015fturulur. Uygulamay\u0131 '
+                              'kullanmaya devam ederek bu kurallara uymay\u0131 '
+                              'kabul etmi\u015f olursun.',
                               style: TextStyle(height: 1.5),
                             ),
                           ],
@@ -106,20 +110,30 @@ class _CommunityTermsScreenState extends State<CommunityTermsScreen> {
                       ),
                       const SizedBox(height: 18),
                       _rule(
-                        'Uygunsuz icerik yasaktir',
-                        'Hakaret, nefret soylemi, taciz, cinsel icerik, tehdit, dolandiricilik, spam ve zarar verici iceriklere tolerans gostermeyiz.',
+                        'Uygunsuz i\u00e7erik yasakt\u0131r',
+                        'Hakaret, nefret s\u00f6ylemi, taciz, cinsel i\u00e7erik, '
+                        'tehdit, doland\u0131r\u0131c\u0131l\u0131k, spam ve zarar '
+                        'verici i\u00e7eriklere tolerans g\u00f6stermeyiz.',
                       ),
                       _rule(
-                        'Sikayet ve engelleme aktif olarak kullanilir',
-                        'Bir kullaniciyi veya ilani sikayet edebilir, kotuye kullanan bir hesabi engelleyebilirsin. Engellenen kullanicinin icerigi uygulamadaki gorunumunden kaldirilir.',
+                        '\u015eikayet ve engelleme aktif olarak kullan\u0131l\u0131r',
+                        'Bir kullan\u0131c\u0131y\u0131 veya ilan\u0131 \u015fikayet '
+                        'edebilir, k\u00f6t\u00fcye kullanan bir hesab\u0131 '
+                        'engelleyebilirsin. Engellenen kullan\u0131c\u0131n\u0131n '
+                        'i\u00e7eri\u011fi uygulamadaki g\u00f6r\u00fcn\u00fcm\u00fcnden '
+                        'kald\u0131r\u0131l\u0131r.',
                       ),
                       _rule(
-                        'Moderasyon 24 saat icinde ele alinir',
-                        'Raporlanan icerikler gelistirici tarafinda incelenir. Gerekirse icerik kaldirilir ve ihlal eden hesap sistemden uzaklastirilir.',
+                        'Moderasyon 24 saat i\u00e7inde ele al\u0131n\u0131r',
+                        'Raporlanan i\u00e7erikler geli\u015ftirici taraf\u0131nda '
+                        'incelenir. Gerekirse i\u00e7erik kald\u0131r\u0131l\u0131r '
+                        've ihlal eden hesap sistemden uzakla\u015ft\u0131r\u0131l\u0131r.',
                       ),
                       _rule(
-                        'Dogru ve guvenli iletisim kur',
-                        'Yalnizca gercek hizmet ve ilan amaciyla iletisim kur. Yaniltici bilgi, uygunsuz yorum veya kotu niyetli teklif gonderme.',
+                        'Do\u011fru ve g\u00fcvenli ileti\u015fim kur',
+                        'Yaln\u0131zca ger\u00e7ek hizmet ve ilan amac\u0131yla '
+                        'ileti\u015fim kur. Yan\u0131lt\u0131c\u0131 bilgi, uygunsuz '
+                        'yorum veya k\u00f6t\u00fc niyetli teklif g\u00f6nderme.',
                       ),
                     ],
                   ),
@@ -133,8 +147,8 @@ class _CommunityTermsScreenState extends State<CommunityTermsScreen> {
                       _submitting
                           ? 'Kaydediliyor...'
                           : widget.requiredAcceptance
-                              ? 'Kurallari kabul et ve devam et'
-                              : 'Kurallari kabul ettim',
+                              ? 'Kurallar\u0131 kabul et ve devam et'
+                              : 'Kurallar\u0131 kabul ettim',
                     ),
                   ),
                 ),

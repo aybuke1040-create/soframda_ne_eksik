@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/data/services/auth_service.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -65,8 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    ActionFeedbackService.showMessage(
+      context,
+      message: message,
     );
   }
 

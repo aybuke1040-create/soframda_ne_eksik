@@ -48,10 +48,10 @@ class UserProfileScreen extends StatelessWidget {
   }) async {
     const reasons = <String>[
       'Hakaret veya taciz',
-      'Uygunsuz icerik',
-      'Spam veya dolandiricilik',
-      'Tehdit veya guvensiz davranis',
-      'Diger',
+      'Uygunsuz i\u00e7erik',
+      'Spam veya doland\u0131r\u0131c\u0131l\u0131k',
+      'Tehdit veya g\u00fcvensiz davran\u0131\u015f',
+      'Di\u011fer',
     ];
 
     return showModalBottomSheet<String>(
@@ -96,7 +96,7 @@ class UserProfileScreen extends StatelessWidget {
   ) async {
     final reason = await _pickModerationReason(
       context,
-      title: 'Bu kullaniciyi neden sikayet etmek istiyorsun?',
+      title: 'Bu kullanıcıyı neden şikayet etmek istiyorsun?',
     );
     if (reason == null) {
       return;
@@ -113,9 +113,9 @@ class UserProfileScreen extends StatelessWidget {
 
     await ActionFeedbackService.show(
       context,
-      title: 'Sikayet alindi',
+      title: 'Şikayet alındı',
       message:
-          '$targetName hakkindaki bildirimini aldik. Icerik 24 saat icinde incelenecek.',
+          '$targetName hakkındaki bildirimini aldık. İçerik 24 saat içinde incelenecek.',
       icon: Icons.flag_outlined,
     );
   }
@@ -126,7 +126,7 @@ class UserProfileScreen extends StatelessWidget {
   ) async {
     final reason = await _pickModerationReason(
       context,
-      title: 'Bu kullaniciyi neden engellemek istiyorsun?',
+      title: 'Bu kullanıcıyı neden engellemek istiyorsun?',
     );
     if (reason == null) {
       return;
@@ -143,9 +143,9 @@ class UserProfileScreen extends StatelessWidget {
 
     await ActionFeedbackService.show(
       context,
-      title: 'Kullanici engellendi',
+      title: 'Kullanıcı engellendi',
       message:
-          '$targetName artik ilanlarinda, mesaj listende ve akisinda gosterilmeyecek.',
+          '$targetName artık ilanlarında, mesaj listende ve akışında gösterilmeyecek.',
       icon: Icons.block_rounded,
     );
   }
@@ -278,7 +278,7 @@ class UserProfileScreen extends StatelessWidget {
                   OutlinedButton.icon(
                     onPressed: () => _reportUser(context, name),
                     icon: const Icon(Icons.flag_outlined),
-                    label: const Text('Kullaniciyi Sikayet Et'),
+                    label: const Text('Kullanıcıyı Şikayet Et'),
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
@@ -292,7 +292,7 @@ class UserProfileScreen extends StatelessWidget {
                         : () => _blockUser(context, name),
                     icon: const Icon(Icons.block),
                     label: Text(
-                      isBlocked ? 'Bu kullanici engelli' : 'Kullaniciyi Engelle',
+                      isBlocked ? 'Bu kullanıcı engelli' : 'Kullanıcıyı Engelle',
                     ),
                   ),
                 ],
@@ -340,7 +340,7 @@ class UserProfileScreen extends StatelessWidget {
                   ),
                   _menuItem(
                     icon: Icons.gavel_outlined,
-                    title: 'Topluluk Kurallari',
+                    title: 'Topluluk Kurallar\u0131',
                     onTap: () {
                       Navigator.push(
                         context,
@@ -352,7 +352,7 @@ class UserProfileScreen extends StatelessWidget {
                   ),
                   _menuItem(
                     icon: Icons.block_outlined,
-                    title: 'Engelledigim Kullanicilar',
+                    title: 'Engelledi\u011fim Kullan\u0131c\u0131lar',
                     onTap: () {
                       Navigator.push(
                         context,

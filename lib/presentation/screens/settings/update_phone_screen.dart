@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/data/services/auth_service.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class UpdatePhoneScreen extends StatefulWidget {
   const UpdatePhoneScreen({super.key});
@@ -40,9 +41,10 @@ class _UpdatePhoneScreenState extends State<UpdatePhoneScreen> {
     return '+90$digits';
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+  Future<void> _showMessage(String message) {
+    return ActionFeedbackService.showMessage(
+      context,
+      message: message,
     );
   }
 
@@ -71,7 +73,7 @@ class _UpdatePhoneScreenState extends State<UpdatePhoneScreen> {
           _isSending = false;
         });
 
-        _showMessage('Do\u011frulama kodu g\u00f6nderildi.');
+        _showMessage('Doğrulama kodu gönderildi.');
       },
       onVerificationFailed: (message) {
         if (!mounted) {
@@ -90,7 +92,7 @@ class _UpdatePhoneScreenState extends State<UpdatePhoneScreen> {
         }
 
         await FirebaseAuth.instance.currentUser?.reload();
-        _showMessage('Telefon numaras\u0131 g\u00fcncellendi.');
+        _showMessage('Telefon numarası güncellendi.');
         Navigator.pop(context);
       },
     );
@@ -98,7 +100,7 @@ class _UpdatePhoneScreenState extends State<UpdatePhoneScreen> {
 
   Future<void> _verifyCode() async {
     if (_verificationId == null || _codeController.text.trim().length < 6) {
-      _showMessage('6 haneli do\u011frulama kodunu girin.');
+      _showMessage('6 haneli doğrulama kodunu girin.');
       return;
     }
 
@@ -116,7 +118,7 @@ class _UpdatePhoneScreenState extends State<UpdatePhoneScreen> {
         return;
       }
 
-      _showMessage('Telefon numaras\u0131 g\u00fcncellendi.');
+      _showMessage('Telefon numarası güncellendi.');
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) {

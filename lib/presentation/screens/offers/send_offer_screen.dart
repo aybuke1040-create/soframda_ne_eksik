@@ -37,7 +37,7 @@ class _SendOfferScreenState extends State<SendOfferScreen> {
       title: 'Teklif için 5 kredi gerekiyor',
       message:
           'Teklifini hemen gönderebilmek için kredi satın alabilir, sonra kaldığın yerden devam edebilirsin.',
-      buttonLabel: 'Kredi Satin Al',
+      buttonLabel: 'Kredi Satın Al',
       highlight: 'Teklif kredi paketleri',
     );
   }

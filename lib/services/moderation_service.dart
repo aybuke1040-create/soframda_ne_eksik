@@ -58,7 +58,7 @@ class ModerationService {
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> watchBlockedUsers() {
-    return _blocksRef.orderBy('blockedAt', descending: true).snapshots();
+    return _blocksRef.snapshots();
   }
 
   Future<void> reportUser({

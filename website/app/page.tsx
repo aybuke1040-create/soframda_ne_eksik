@@ -69,7 +69,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+          <div className="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
             <PhoneMockup
               title="Teklifleri karşılaştır"
               subtitle="Yerel hizmet verenlerle hızlı eşleş"
@@ -135,14 +135,14 @@ export default function HomePage() {
           title="Sıcak, pratik ve güven veren bir mobil deneyim."
           copy="Talep oluşturma, teklif değerlendirme ve mesajlaşma akışı; tek elde rahat kullanıma ve hızlı karar almaya göre tasarlandı."
         />
-        <div className="mt-10 grid gap-5 lg:grid-cols-3">
+        <div className="mt-10 grid items-start gap-5 lg:grid-cols-3">
           <div className="glass-card rounded-4xl p-4">
             <Image
               src="/screens/request-feed.png"
               alt="Talep akışı"
               width={720}
               height={1080}
-              className="rounded-[1.75rem] object-cover"
+              className="mx-auto aspect-[9/16] w-full max-w-[19rem] rounded-[2rem] border-[10px] border-[#1e1330] bg-slate-100 object-cover object-top shadow-glow"
             />
           </div>
           <div className="glass-card rounded-4xl p-4">
@@ -151,7 +151,7 @@ export default function HomePage() {
               alt="Hazır yemekler"
               width={720}
               height={1080}
-              className="rounded-[1.75rem] object-cover"
+              className="mx-auto aspect-[9/16] w-full max-w-[19rem] rounded-[2rem] border-[10px] border-[#1e1330] bg-slate-100 object-cover object-top shadow-glow"
             />
           </div>
           <div className="glass-card rounded-4xl p-4">

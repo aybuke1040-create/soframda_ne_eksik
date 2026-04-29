@@ -1,21 +1,24 @@
 ﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/core/utils/text_utils.dart';
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/delivery/delivery_detail_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/design/design_detail_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/food/food_detail_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/ready_to_serve/ready_food_detail_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/requests/request_detail_screen.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
-  void _showInactiveMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Bu ilan şu an aktif değildir.'),
-      ),
+  Future<void> _showInactiveMessage(BuildContext context) {
+    return ActionFeedbackService.show(
+      context,
+      title: 'İlan aktif değil',
+      message: 'Bu ilan şu an aktif değildir.',
+      icon: Icons.info_outline_rounded,
     );
   }
 
@@ -47,7 +50,7 @@ class NotificationsScreen extends StatelessWidget {
 
     if (!requestDoc.exists) {
       if (context.mounted) {
-        _showInactiveMessage(context);
+        await _showInactiveMessage(context);
       }
       return;
     }
@@ -60,7 +63,7 @@ class NotificationsScreen extends StatelessWidget {
     final isActive = status == 'open';
 
     if (!isActive) {
-      _showInactiveMessage(context);
+      await _showInactiveMessage(context);
       return;
     }
 
@@ -104,7 +107,7 @@ class NotificationsScreen extends StatelessWidget {
       );
     } catch (_) {
       if (context.mounted) {
-        _showInactiveMessage(context);
+        await _showInactiveMessage(context);
       }
     }
   }
@@ -156,8 +159,8 @@ class NotificationsScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final doc = docs[index];
               final data = doc.data() as Map<String, dynamic>;
-              final title = (data['title'] ?? '').toString();
-              final body = (data['body'] ?? '').toString();
+              final title = normalizeNotificationText((data['title'] ?? '').toString());
+              final body = normalizeNotificationText((data['body'] ?? '').toString());
               final isRead = data['read'] == true;
 
               return ListTile(

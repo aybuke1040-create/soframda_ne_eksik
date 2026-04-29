@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/rating_service.dart';
 
 class RatingDialog extends StatefulWidget {
@@ -44,9 +45,11 @@ class _RatingDialogState extends State<RatingDialog> {
             );
 
             Navigator.pop(context);
-
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Puan verildi ⭐")),
+            await ActionFeedbackService.show(
+              context,
+              title: 'Puan verildi',
+              message: 'Puan verildi.',
+              icon: Icons.star_rounded,
             );
           },
           child: const Text("Gönder"),

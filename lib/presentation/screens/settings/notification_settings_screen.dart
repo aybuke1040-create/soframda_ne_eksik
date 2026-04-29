@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
+import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -97,22 +98,24 @@ class _NotificationSettingsScreenState
         _ => 'Bildirim tercihi güncellendi.',
       };
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Bildirim tercihi güncellendi',
+        message: message,
+        icon: Icons.notifications_active_outlined,
       );
     } catch (e) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e is TimeoutException
-                ? 'Bildirim güncellemesi zaman aşımına uğradı. Lütfen tekrar deneyin.'
-                : 'Bildirim izni güncellenemedi: $e',
-          ),
-        ),
+      await ActionFeedbackService.show(
+        context,
+        title: 'Bildirim izni güncellenemedi',
+        message: e is TimeoutException
+            ? 'Bildirim güncellemesi zaman aşımına uğradı. Lütfen tekrar deneyin.'
+            : 'Bildirim izni güncellenemedi: $e',
+        icon: Icons.error_outline_rounded,
       );
     } finally {
       if (mounted) {

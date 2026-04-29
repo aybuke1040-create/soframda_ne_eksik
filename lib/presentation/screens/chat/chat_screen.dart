@@ -49,10 +49,10 @@ class _ChatScreenState extends State<ChatScreen> {
   }) async {
     const reasons = <String>[
       'Hakaret veya taciz',
-      'Uygunsuz icerik',
-      'Spam veya dolandiricilik',
-      'Tehdit veya guvensiz davranis',
-      'Diger',
+      'Uygunsuz içerik',
+      'Spam veya dolandırıcılık',
+      'Tehdit veya güvensiz davranış',
+      'Diğer',
     ];
 
     return showModalBottomSheet<String>(
@@ -94,7 +94,7 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     final reason = await _pickModerationReason(
-      title: 'Bu kullaniciyi neden sikayet etmek istiyorsun?',
+      title: 'Bu kullanıcıyı neden şikayet etmek istiyorsun?',
     );
     if (reason == null) {
       return;
@@ -111,9 +111,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     await ActionFeedbackService.show(
       context,
-      title: 'Sikayet alindi',
+      title: 'Şikayet alındı',
       message:
-          '$otherUserName hakkindaki bildirimini aldik. Moderasyon ekibimiz 24 saat icinde inceleyecek.',
+          '$otherUserName hakkındaki bildirimini aldık. Moderasyon ekibimiz 24 saat içinde inceleyecek.',
       icon: Icons.flag_outlined,
     );
   }
@@ -123,7 +123,7 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     final reason = await _pickModerationReason(
-      title: 'Bu kullaniciyi neden engellemek istiyorsun?',
+      title: 'Bu kullanıcıyı neden engellemek istiyorsun?',
     );
     if (reason == null) {
       return;
@@ -140,12 +140,32 @@ class _ChatScreenState extends State<ChatScreen> {
 
     await ActionFeedbackService.show(
       context,
-      title: 'Kullanici engellendi',
+      title: 'Kullanıcı engellendi',
       message:
-          '$otherUserName artik akisinda ve mesaj listende gorunmeyecek.',
+          '$otherUserName artık akışında ve mesaj listende görünmeyecek.',
       icon: Icons.block_rounded,
     );
     Navigator.pop(context);
+  }
+
+  Future<void> _unblockUser() async {
+    if (otherUserId.isEmpty) {
+      return;
+    }
+
+    await ModerationService().unblockUser(targetUserId: otherUserId);
+
+    if (!mounted) {
+      return;
+    }
+
+    await ActionFeedbackService.show(
+      context,
+      title: 'Engel kaldırıldı',
+      message:
+          '$otherUserName için engel kaldırıldı. İçerikleri yeniden görünmeye başlayacak.',
+      icon: Icons.check_circle_outline_rounded,
+    );
   }
 
   @override
@@ -518,25 +538,41 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: Text(otherUserName),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) async {
-              if (value == 'report') {
-                await _reportUser();
-              }
-              if (value == 'block') {
-                await _blockUser();
-              }
+          StreamBuilder<Set<String>>(
+            stream: ModerationService().watchBlockedUserIds(),
+            builder: (context, snapshot) {
+              final blockedIds = snapshot.data ?? const <String>{};
+              final isBlocked = otherUserId.isNotEmpty &&
+                  blockedIds.contains(otherUserId);
+
+              return PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'report') {
+                    await _reportUser();
+                  }
+                  if (value == 'block') {
+                    await _blockUser();
+                  }
+                  if (value == 'unblock') {
+                    await _unblockUser();
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem<String>(
+                    value: 'report',
+                    child: Text('Kullanıcıyı Şikayet Et'),
+                  ),
+                  PopupMenuItem<String>(
+                    value: isBlocked ? 'unblock' : 'block',
+                    child: Text(
+                      isBlocked
+                          ? 'Engeli Kaldır'
+                          : 'Kullanıcıyı Engelle',
+                    ),
+                  ),
+                ],
+              );
             },
-            itemBuilder: (context) => const [
-              PopupMenuItem<String>(
-                value: 'report',
-                child: Text('Kullaniciyi Sikayet Et'),
-              ),
-              PopupMenuItem<String>(
-                value: 'block',
-                child: Text('Kullaniciyi Engelle'),
-              ),
-            ],
           ),
         ],
       ),
