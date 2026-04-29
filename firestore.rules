@@ -31,6 +31,10 @@ service cloud.firestore {
 
       match /private/{documentId} {
         allow read, write: if isSelf(userId);
+
+        match /{subCollection}/{docId} {
+          allow read, write: if isSelf(userId);
+        }
       }
     }
 
