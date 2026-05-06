@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
@@ -21,6 +22,19 @@ class PurchaseFlowResult {
   });
 }
 
+class _PendingPurchaseRequest {
+  final Completer<PurchaseFlowResult> completer;
+  final DateTime startedAt;
+
+  _PendingPurchaseRequest()
+      : completer = Completer<PurchaseFlowResult>(),
+        startedAt = DateTime.now();
+
+  bool get isStale {
+    return DateTime.now().difference(startedAt) > const Duration(seconds: 45);
+  }
+}
+
 class IAPService {
   IAPService._internal() {
     _purchaseSubscription = _iap.purchaseStream.listen(
@@ -34,12 +48,17 @@ class IAPService {
 
   final InAppPurchase _iap = InAppPurchase.instance;
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
-  final Map<String, Completer<PurchaseFlowResult>> _pendingPurchases = {};
+  final Map<String, _PendingPurchaseRequest> _pendingPurchases = {};
   final List<String> _productIds = const [
     'credits_50',
     'credits_120',
     'credits_300',
   ];
+
+  bool get _isAndroid => defaultTargetPlatform == TargetPlatform.android;
+  bool get _isIOS => defaultTargetPlatform == TargetPlatform.iOS;
+  // Keep the subscription alive for the singleton service lifetime.
+  // ignore: unused_field
   StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
 
   Future<List<ProductDetails>> loadProducts() async {
@@ -60,17 +79,29 @@ class IAPService {
       );
     }
 
-    if (_pendingPurchases.containsKey(product.id)) {
+    final existingPendingPurchase = _pendingPurchases[product.id];
+    if (existingPendingPurchase != null && !existingPendingPurchase.isStale) {
       return const PurchaseFlowResult(
         status: PurchaseFlowStatus.failed,
-        message: 'Bu satin alma istegi zaten isleniyor.',
+        message:
+            'Bu satin alma istegi magaza tarafinda hala isleniyor. Kisa sure sonra tekrar dene.',
       );
     }
 
-    await _recoverAndroidOwnedProductIfNeeded(product.id);
+    if (existingPendingPurchase != null && existingPendingPurchase.isStale) {
+      _pendingPurchases.remove(product.id);
+    }
 
-    final completer = Completer<PurchaseFlowResult>();
-    _pendingPurchases[product.id] = completer;
+    final recoveredPurchase = await _recoverOwnedProductIfNeeded(
+      product.id,
+      cleanIncompletePurchase: true,
+    );
+    if (recoveredPurchase != null) {
+      return recoveredPurchase;
+    }
+
+    final pendingPurchase = _PendingPurchaseRequest();
+    _pendingPurchases[product.id] = pendingPurchase;
 
     try {
       final purchaseParam = PurchaseParam(productDetails: product);
@@ -87,8 +118,8 @@ class IAPService {
         );
       }
 
-      return completer.future.timeout(
-        const Duration(minutes: 2),
+      return pendingPurchase.completer.future.timeout(
+        const Duration(seconds: 45),
         onTimeout: () {
           _pendingPurchases.remove(product.id);
           return const PurchaseFlowResult(
@@ -96,6 +127,20 @@ class IAPService {
             message: 'Satin alma dogrulamasi zaman asimina ugradi.',
           );
         },
+      );
+    } on PlatformException catch (e) {
+      _pendingPurchases.remove(product.id);
+      if (_isAndroidAlreadyOwnedError(e)) {
+        final recoveredPurchase =
+            await _recoverOwnedProductIfNeeded(product.id);
+        if (recoveredPurchase != null) {
+          return recoveredPurchase;
+        }
+      }
+
+      return PurchaseFlowResult(
+        status: PurchaseFlowStatus.failed,
+        message: e.message ?? 'Satin alma su an tamamlanamadi.',
       );
     } catch (_) {
       _pendingPurchases.remove(product.id);
@@ -127,33 +172,56 @@ class IAPService {
             purchase.productID,
             PurchaseFlowResult(
               status: PurchaseFlowStatus.failed,
-              message: purchase.error?.message ??
-                  'Satin alma su an tamamlanamadi.',
+              message:
+                  purchase.error?.message ?? 'Satin alma su an tamamlanamadi.',
             ),
           );
           break;
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
-          await _verifyAndGrantPurchase(purchase);
+          final result = await _verifyAndGrantPurchase(
+            purchase,
+            retryIncompletePurchase: true,
+          );
+          _completePurchaseResult(purchase.productID, result);
           break;
       }
     }
   }
 
-  Future<void> _verifyAndGrantPurchase(PurchaseDetails purchase) async {
+  Future<PurchaseFlowResult> _verifyAndGrantPurchase(
+    PurchaseDetails purchase, {
+    bool retryIncompletePurchase = false,
+  }) async {
+    const maxAttempts = 4;
+
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      final result = await _verifyAndGrantPurchaseOnce(purchase);
+      if (!retryIncompletePurchase ||
+          !_isPurchaseNotCompletedResult(result) ||
+          attempt == maxAttempts - 1) {
+        return result;
+      }
+
+      await Future<void>.delayed(const Duration(milliseconds: 1500));
+    }
+
+    return const PurchaseFlowResult(
+      status: PurchaseFlowStatus.failed,
+      message: 'Satin alma dogrulanamadi.',
+    );
+  }
+
+  Future<PurchaseFlowResult> _verifyAndGrantPurchaseOnce(
+    PurchaseDetails purchase,
+  ) async {
     try {
       final purchaseToken = purchase.verificationData.serverVerificationData;
       if (purchaseToken.trim().isEmpty) {
         throw Exception('Satin alma dogrulamasi alinamadi.');
       }
 
-      final callable = _functions.httpsCallable('verifyAndGrantAndroidPurchase');
-      final result = await callable.call({
-        'productId': purchase.productID,
-        'purchaseToken': purchaseToken,
-        'purchaseId': purchase.purchaseID ?? '',
-        'source': purchase.verificationData.source,
-      });
+      final result = await _callPurchaseVerifier(purchase);
 
       final data = Map<String, dynamic>.from(result.data as Map);
       final grantedCredits = (data['grantedCredits'] as num?)?.toInt() ?? 0;
@@ -162,42 +230,34 @@ class IAPService {
       await _consumeAndroidPurchaseIfNeeded(purchase);
       await _completePendingPurchaseIfNeeded(purchase);
 
-      _completePurchaseResult(
-        purchase.productID,
-        PurchaseFlowResult(
-          status: PurchaseFlowStatus.success,
-          message: alreadyGranted
-              ? 'Bu satin alma daha once islenmis.'
-              : '$grantedCredits kredi hesabina eklendi.',
-        ),
+      return PurchaseFlowResult(
+        status: PurchaseFlowStatus.success,
+        message: alreadyGranted
+            ? 'Bu satin alma daha once islenmis ve urun temizlendi. Tekrar satin alabilirsin.'
+            : '$grantedCredits kredi hesabina eklendi.',
       );
     } on FirebaseFunctionsException catch (e) {
-      _completePurchaseResult(
-        purchase.productID,
-        PurchaseFlowResult(
-          status: PurchaseFlowStatus.failed,
-          message: e.message ?? 'Satin alma dogrulanamadi.',
-        ),
+      return PurchaseFlowResult(
+        status: PurchaseFlowStatus.failed,
+        message: e.message ?? 'Satin alma dogrulanamadi.',
       );
     } catch (_) {
-      _completePurchaseResult(
-        purchase.productID,
-        const PurchaseFlowResult(
-          status: PurchaseFlowStatus.failed,
-          message: 'Satin alma dogrulanamadi.',
-        ),
+      return const PurchaseFlowResult(
+        status: PurchaseFlowStatus.failed,
+        message: 'Satin alma dogrulanamadi.',
       );
     }
   }
 
-  Future<void> _completePendingPurchaseIfNeeded(PurchaseDetails purchase) async {
+  Future<void> _completePendingPurchaseIfNeeded(
+      PurchaseDetails purchase) async {
     if (purchase.pendingCompletePurchase) {
       await _iap.completePurchase(purchase);
     }
   }
 
   Future<void> _consumeAndroidPurchaseIfNeeded(PurchaseDetails purchase) async {
-    if (defaultTargetPlatform != TargetPlatform.android) {
+    if (!_isAndroid) {
       return;
     }
 
@@ -206,9 +266,35 @@ class IAPService {
     await androidAddition.consumePurchase(purchase);
   }
 
-  Future<void> _recoverAndroidOwnedProductIfNeeded(String productId) async {
-    if (defaultTargetPlatform != TargetPlatform.android) {
-      return;
+  Future<HttpsCallableResult<dynamic>> _callPurchaseVerifier(
+    PurchaseDetails purchase,
+  ) {
+    if (_isIOS) {
+      final callable = _functions.httpsCallable('verifyAndGrantApplePurchase');
+      return callable.call({
+        'productId': purchase.productID,
+        'receiptData': purchase.verificationData.serverVerificationData,
+        'transactionId': purchase.purchaseID ?? '',
+        'purchaseId': purchase.purchaseID ?? '',
+        'source': purchase.verificationData.source,
+      });
+    }
+
+    final callable = _functions.httpsCallable('verifyAndGrantAndroidPurchase');
+    return callable.call({
+      'productId': purchase.productID,
+      'purchaseToken': purchase.verificationData.serverVerificationData,
+      'purchaseId': purchase.purchaseID ?? '',
+      'source': purchase.verificationData.source,
+    });
+  }
+
+  Future<PurchaseFlowResult?> _recoverOwnedProductIfNeeded(
+    String productId, {
+    bool cleanIncompletePurchase = false,
+  }) async {
+    if (!_isAndroid) {
+      return null;
     }
 
     final androidAddition =
@@ -222,17 +308,46 @@ class IAPService {
 
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
-        await _verifyAndGrantPurchase(purchase);
+        final result = await _verifyAndGrantPurchase(purchase);
+        if (cleanIncompletePurchase && _isPurchaseNotCompletedResult(result)) {
+          await _consumeAndroidPurchaseIfNeeded(purchase);
+          await _completePendingPurchaseIfNeeded(purchase);
+          return const PurchaseFlowResult(
+            status: PurchaseFlowStatus.failed,
+            message:
+                'Google Play tarafinda takili kalan eski satin alma kaydi temizlendi. Lutfen tekrar satin almayi dene.',
+          );
+        }
+
+        return result;
       } else {
         await _completePendingPurchaseIfNeeded(purchase);
       }
     }
+
+    return null;
   }
 
   void _completePurchaseResult(String productId, PurchaseFlowResult result) {
-    final completer = _pendingPurchases.remove(productId);
+    final pendingPurchase = _pendingPurchases.remove(productId);
+    final completer = pendingPurchase?.completer;
     if (completer != null && !completer.isCompleted) {
       completer.complete(result);
     }
+  }
+
+  bool _isAndroidAlreadyOwnedError(PlatformException error) {
+    final code = error.code.toLowerCase();
+    final message = (error.message ?? '').toLowerCase();
+    return code.contains('item_already_owned') ||
+        code.contains('already_owned') ||
+        message.contains('already own') ||
+        message.contains('already owned') ||
+        message.contains('zaten');
+  }
+
+  bool _isPurchaseNotCompletedResult(PurchaseFlowResult result) {
+    return result.status == PurchaseFlowStatus.failed &&
+        result.message.toLowerCase().contains('purchase is not completed');
   }
 }

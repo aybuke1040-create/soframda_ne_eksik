@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/presentation/screens/design/create_design_request_screen.dart';
@@ -251,7 +251,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
                 _buildSectionTitle(
                   title: 'Açık Tasarım İlanları',
                   subtitle:
-                      'Tasarlanmayı bekleyen kutlama ve organizasyon ilanları.',
+                      'Tasarlanmayı bekleyen kutlama ve organizasyon ilanları. İlanların güncelliği için unutma ilanların yayında kalma süresi 1 hafta, geç kalma hemen teklif ver !',
                 ),
                 const SizedBox(height: 12),
                 StreamBuilder<QuerySnapshot>(
@@ -776,5 +776,3 @@ class _DesignIdeaCard extends StatelessWidget {
     );
   }
 }
-
-

@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -120,8 +120,9 @@ class _ReadyToServeScreenState extends State<ReadyToServeScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
             children: [
               _buildSectionTitle(
-                title: 'Yakindaki Hazır Yemekler',
-                subtitle: 'Satışa hazır ürünleri mesafeye göre karşılaştır.',
+                title: 'Yakındaki Hazır Yemekler',
+                subtitle:
+                    'Satışa hazır ürünleri mesafeye göre karşılaştır. Tazelik için ilanların yayında kalma süresi 2 gün unutma hemen sipariş ver !',
               ),
               const SizedBox(height: 12),
               _buildReadyFoodGrid(),
@@ -250,40 +251,45 @@ class _ReadyToServeScreenState extends State<ReadyToServeScreen> {
 
         final docs = snapshot.data!.docs;
 
-        final items = docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+        final items = docs
+            .map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
 
-          if (!isRequestVisibleForPublic(data)) {
-            return null;
-          }
+              if (!isRequestVisibleForPublic(data)) {
+                return null;
+              }
 
-          final km = distance.as(
-            LengthUnit.Kilometer,
-            LatLng(userPosition!.latitude, userPosition!.longitude),
-            LatLng(
-              (data['latitude'] ?? 0).toDouble(),
-              (data['longitude'] ?? 0).toDouble(),
-            ),
-          );
+              final km = distance.as(
+                LengthUnit.Kilometer,
+                LatLng(userPosition!.latitude, userPosition!.longitude),
+                LatLng(
+                  (data['latitude'] ?? 0).toDouble(),
+                  (data['longitude'] ?? 0).toDouble(),
+                ),
+              );
 
-          return {
-            'id': doc.id,
-            'title': data['title'] ?? '',
-            'imageUrl': data['imageUrl'] ?? '',
-            'price': data['price'],
-            'portion': data['portion'],
-            'distance': km,
-            'isFeatured': data['isFeatured'] == true,
-            'ownerId': data['ownerId'] ?? '',
-            'ownerName': data['ownerName'] ?? data['userName'] ?? '',
-          };
-        }).whereType<Map<String, dynamic>>().where((item) {
-          final itemDistance = item['distance'] as double? ?? 9999;
-          return itemDistance <= 30;
-        }).toList();
+              return {
+                'id': doc.id,
+                'title': data['title'] ?? '',
+                'imageUrl': data['imageUrl'] ?? '',
+                'price': data['price'],
+                'portion': data['portion'],
+                'distance': km,
+                'isFeatured': data['isFeatured'] == true,
+                'ownerId': data['ownerId'] ?? '',
+                'ownerName': data['ownerName'] ?? data['userName'] ?? '',
+              };
+            })
+            .whereType<Map<String, dynamic>>()
+            .where((item) {
+              final itemDistance = item['distance'] as double? ?? 9999;
+              return itemDistance <= 30;
+            })
+            .toList();
 
         items.sort(
-          (a, b) => (a['distance'] as double).compareTo(b['distance'] as double),
+          (a, b) =>
+              (a['distance'] as double).compareTo(b['distance'] as double),
         );
 
         if (items.isEmpty) {
@@ -393,4 +399,3 @@ class _HeroBannerDot extends StatelessWidget {
     );
   }
 }
-

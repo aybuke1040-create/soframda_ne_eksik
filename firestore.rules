@@ -25,7 +25,14 @@ service cloud.firestore {
 
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSelf(userId);
+      allow create: if isSelf(userId) &&
+        !request.resource.data.keys().hasAny(['credit', 'credits']) &&
+        (!('ratingAverage' in request.resource.data) ||
+          request.resource.data.ratingAverage == 0) &&
+        (!('ratingCount' in request.resource.data) ||
+          request.resource.data.ratingCount == 0) &&
+        (!('completedOrders' in request.resource.data) ||
+          request.resource.data.completedOrders == 0);
       allow update: if isSelf(userId) && protectedUserFieldsUnchanged();
       allow delete: if false;
 

@@ -9,12 +9,14 @@ class SendOfferScreen extends StatefulWidget {
   final String requestId;
   final String ownerId;
   final bool chargeCredits;
+  final int offerCreditCost;
 
   const SendOfferScreen({
     super.key,
     required this.requestId,
     required this.ownerId,
     this.chargeCredits = true,
+    this.offerCreditCost = 5,
   });
 
   @override
@@ -34,7 +36,7 @@ class _SendOfferScreenState extends State<SendOfferScreen> {
   void _showOfferCreditsSheet() {
     PaywallService.showInsufficientCreditsSheet(
       context,
-      title: 'Teklif için 5 kredi gerekiyor',
+      title: 'Teklif için ${widget.offerCreditCost} kredi gerekiyor',
       message:
           'Teklifini hemen gönderebilmek için kredi satın alabilir, sonra kaldığın yerden devam edebilirsin.',
       buttonLabel: 'Kredi Satın Al',
@@ -99,8 +101,9 @@ class _SendOfferScreenState extends State<SendOfferScreen> {
       }
 
       final message = (e.message ?? '').toLowerCase();
-      final needsCredits =
-          widget.chargeCredits && e.code == 'failed-precondition' && message.contains('kredi');
+      final needsCredits = widget.chargeCredits &&
+          e.code == 'failed-precondition' &&
+          message.contains('kredi');
       if (needsCredits) {
         _showOfferCreditsSheet();
         return;
@@ -175,7 +178,7 @@ class _SendOfferScreenState extends State<SendOfferScreen> {
               ),
               child: Text(
                 widget.chargeCredits
-                    ? 'Bu ilana teklif göndermek 5 kredi kullanır. Teklif kabul edilirse sohbet otomatik açılır.'
+                    ? 'Bu ilana teklif göndermek ${widget.offerCreditCost} kredi kullanır. Teklif kabul edilirse sohbet otomatik açılır.'
                     : 'Bu sohbetten göndereceğin teklif için ek kredi düşmez. Teklif kabul edilirse sohbet kesintisiz devam eder.',
               ),
             ),

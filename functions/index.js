@@ -1,6 +1,7 @@
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
 const {onCall, HttpsError} = require("firebase-functions/v2/https");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
+const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const {GoogleAuth} = require("google-auth-library");
@@ -11,6 +12,8 @@ const db = admin.firestore();
 const NOTIFY_RADIUS_KM = 30;
 const FIRST_MESSAGE_COST = 10;
 const OFFER_COST = 5;
+const PREMIUM_REQUEST_OFFER_COST = 10;
+const WELCOME_SIGNUP_BONUS = 100;
 const REVIEW_BONUS = 5;
 const DAILY_LOGIN_BONUS = 5;
 const MONTHLY_SHARE_BONUS = 10;
@@ -18,11 +21,16 @@ const PRIVATE_CONTEXT_DOC_ID = "context";
 const READY_FOOD_LIFETIME_DAYS = 2;
 const DEFAULT_REQUEST_LIFETIME_DAYS = 7;
 const APP_PACKAGE_NAME = "com.benyaparim.app";
+const APPLE_VERIFY_RECEIPT_PRODUCTION_URL =
+  "https://buy.itunes.apple.com/verifyReceipt";
+const APPLE_VERIFY_RECEIPT_SANDBOX_URL =
+  "https://sandbox.itunes.apple.com/verifyReceipt";
 const CREDIT_PACK_PRODUCTS = {
   credits_50: 50,
   credits_120: 120,
   credits_300: 300,
 };
+const MODERATION_CONFIG_PATH = "app_config/moderation";
 const COMMUNITY_TERMS_VERSION = "2026-04-ugc-safety";
 const OBJECTIONABLE_PATTERNS = [
   /salak/iu,
@@ -141,6 +149,49 @@ exports.notifyNearbyUsersForNewRequest = onDocumentCreated(
     if (notifyCount > 0) {
       await batch.commit();
     }
+  },
+);
+
+exports.grantWelcomeCredits = onDocumentCreated(
+  "users/{userId}",
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) {
+      return;
+    }
+
+    const userId = event.params.userId;
+    const userRef = snapshot.ref;
+
+    await db.runTransaction(async (tx) => {
+      const userDoc = await tx.get(userRef);
+      if (!userDoc.exists) {
+        return;
+      }
+
+      const userData = userDoc.data() || {};
+      if (userData.welcomeCreditsGranted === true) {
+        return;
+      }
+
+      const currentCredit = getCreditValue(userData);
+      applyCreditChange(
+          tx,
+          userRef,
+          currentCredit + WELCOME_SIGNUP_BONUS,
+          WELCOME_SIGNUP_BONUS,
+          "welcome_signup_bonus",
+          {
+            welcomeCreditsGranted: true,
+            welcomeCreditsGrantedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+      );
+
+      logger.info("Welcome signup credits granted", {
+        userId,
+        credits: WELCOME_SIGNUP_BONUS,
+      });
+    });
   },
 );
 
@@ -403,16 +454,13 @@ exports.verifyAndGrantAndroidPurchase = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Unsupported purchase source");
   }
 
-  const purchaseData = await verifyAndroidProductPurchase({
+  const purchaseData = await verifyCompletedAndroidProductPurchase({
     packageName: APP_PACKAGE_NAME,
     productId: normalizedProductId,
     purchaseToken: normalizedToken,
   });
 
   const purchaseState = Number(purchaseData.purchaseState ?? -1);
-  if (purchaseState !== 0) {
-    throw new HttpsError("failed-precondition", "Purchase is not completed");
-  }
 
   const receiptRef = db
       .collection("purchase_receipts")
@@ -467,6 +515,103 @@ exports.verifyAndGrantAndroidPurchase = onCall(async (request) => {
   });
 });
 
+exports.verifyAndGrantApplePurchase = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  const {productId, receiptData, transactionId, purchaseId, source} =
+    request.data || {};
+
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  const normalizedProductId = String(productId || "");
+  const creditsToGrant = CREDIT_PACK_PRODUCTS[normalizedProductId];
+  if (!creditsToGrant) {
+    throw new HttpsError("invalid-argument", "Unsupported product");
+  }
+
+  const normalizedReceiptData = String(receiptData || "").trim();
+  if (!normalizedReceiptData) {
+    throw new HttpsError("invalid-argument", "Missing receipt data");
+  }
+
+  if (source && String(source) !== "app_store") {
+    throw new HttpsError("invalid-argument", "Unsupported purchase source");
+  }
+
+  const receipt = await verifyAppleReceipt(normalizedReceiptData);
+  const receiptItem = findAppleReceiptItem({
+    receipt,
+    productId: normalizedProductId,
+    transactionId: String(transactionId || purchaseId || ""),
+  });
+
+  if (!receiptItem) {
+    throw new HttpsError("failed-precondition", "Purchase is not completed");
+  }
+
+  const normalizedTransactionId = String(
+      receiptItem.transaction_id ||
+      receiptItem.original_transaction_id ||
+      transactionId ||
+      purchaseId ||
+      "",
+  );
+
+  if (!normalizedTransactionId) {
+    throw new HttpsError("failed-precondition", "Missing transaction id");
+  }
+
+  const receiptRef = db
+      .collection("purchase_receipts")
+      .doc(buildAppleReceiptId(normalizedProductId, normalizedTransactionId));
+  const userRef = db.collection("users").doc(uid);
+
+  return db.runTransaction(async (tx) => {
+    const [receiptSnap, userSnap] = await Promise.all([
+      tx.get(receiptRef),
+      tx.get(userRef),
+    ]);
+
+    if (receiptSnap.exists) {
+      const receiptData = receiptSnap.data() || {};
+      return {
+        success: true,
+        alreadyGranted: true,
+        grantedCredits: Number(receiptData.creditsGranted || creditsToGrant),
+      };
+    }
+
+    const currentCredit = getCreditValue(userSnap.data());
+    applyCreditChange(
+        tx,
+        userRef,
+        currentCredit + creditsToGrant,
+        creditsToGrant,
+        `purchase_${normalizedProductId}`,
+    );
+
+    tx.set(receiptRef, {
+      userId: uid,
+      platform: "ios",
+      productId: normalizedProductId,
+      purchaseId: String(purchaseId || normalizedTransactionId),
+      transactionId: normalizedTransactionId,
+      originalTransactionId: String(receiptItem.original_transaction_id || ""),
+      creditsGranted: creditsToGrant,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      receiptStatus: Number(receipt.status ?? -1),
+      raw: receiptItem,
+    });
+
+    return {
+      success: true,
+      alreadyGranted: false,
+      grantedCredits: creditsToGrant,
+    };
+  });
+});
+
 exports.reportContent = onCall(async (request) => {
   const uid = request.auth && request.auth.uid;
   const {
@@ -501,8 +646,16 @@ exports.reportContent = onCall(async (request) => {
     termsVersion: COMMUNITY_TERMS_VERSION,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
     reviewDeadlineAt: admin.firestore.Timestamp.fromDate(
-        new Date(Date.now() + 24 * 60 * 60 * 1000),
-    ),
+      new Date(Date.now() + 24 * 60 * 60 * 1000),
+      ),
+  });
+
+  await notifyModerationAdmins({
+    reportId: reportRef.id,
+    reporterId: uid,
+    targetUserId: String(targetUserId || "").trim(),
+    contentType: normalizedType,
+    reason: normalizedReason,
   });
 
   return {success: true, reportId: reportRef.id};
@@ -650,6 +803,7 @@ exports.sendOffer = onCall(async (request) => {
     }
 
     const shouldChargeOffer = fromChat !== true;
+    const offerCost = getOfferCostForRequest(requestData);
 
     if (!shouldChargeOffer) {
       const chatData = chatDoc.data() || {};
@@ -663,7 +817,7 @@ exports.sendOffer = onCall(async (request) => {
     }
 
     const currentCredit = getCreditValue(userDoc.data());
-    if (shouldChargeOffer && currentCredit < OFFER_COST) {
+    if (shouldChargeOffer && currentCredit < offerCost) {
       throw new HttpsError("failed-precondition", "Yetersiz kredi");
     }
 
@@ -671,8 +825,8 @@ exports.sendOffer = onCall(async (request) => {
       applyCreditChange(
           tx,
           userRef,
-          currentCredit - OFFER_COST,
-          -OFFER_COST,
+          currentCredit - offerCost,
+          -offerCost,
           actionName || "send_offer",
       );
     }
@@ -1287,13 +1441,141 @@ async function verifyAndroidProductPurchase({packageName, productId, purchaseTok
   return response.json();
 }
 
+async function verifyCompletedAndroidProductPurchase({
+  packageName,
+  productId,
+  purchaseToken,
+}) {
+  let latestPurchaseData = null;
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    latestPurchaseData = await verifyAndroidProductPurchase({
+      packageName,
+      productId,
+      purchaseToken,
+    });
+
+    const purchaseState = Number(latestPurchaseData.purchaseState ?? -1);
+    if (purchaseState === 0) {
+      return latestPurchaseData;
+    }
+
+    if (attempt < 3) {
+      await sleep(1500);
+    }
+  }
+
+  logger.warn("Android purchase is not completed after retries", {
+    packageName,
+    productId,
+    purchaseState: Number(latestPurchaseData?.purchaseState ?? -1),
+    orderId: String(latestPurchaseData?.orderId || ""),
+  });
+
+  throw new HttpsError("failed-precondition", "Purchase is not completed");
+}
+
+async function verifyAppleReceipt(receiptData) {
+  const productionResponse = await callAppleVerifyReceipt(
+      APPLE_VERIFY_RECEIPT_PRODUCTION_URL,
+      receiptData,
+  );
+
+  if (Number(productionResponse.status) === 21007) {
+    return callAppleVerifyReceipt(APPLE_VERIFY_RECEIPT_SANDBOX_URL, receiptData);
+  }
+
+  if (Number(productionResponse.status) !== 0) {
+    logger.warn("Apple receipt verification failed", {
+      status: productionResponse.status,
+    });
+    throw new HttpsError(
+        "permission-denied",
+        `Apple receipt verification failed: ${productionResponse.status}`,
+    );
+  }
+
+  return productionResponse;
+}
+
+async function callAppleVerifyReceipt(url, receiptData) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      "receipt-data": receiptData,
+      "exclude-old-transactions": true,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new HttpsError(
+        "permission-denied",
+        `Apple receipt verification request failed: ${body}`,
+    );
+  }
+
+  return response.json();
+}
+
+function findAppleReceiptItem({receipt, productId, transactionId}) {
+  const inApp = Array.isArray(receipt?.receipt?.in_app) ?
+    receipt.receipt.in_app : [];
+  const normalizedTransactionId = String(transactionId || "");
+  const matchingProductItems = inApp.filter((item) =>
+    String(item.product_id || "") === productId,
+  );
+
+  if (!matchingProductItems.length) {
+    return null;
+  }
+
+  if (normalizedTransactionId) {
+    const exactMatch = matchingProductItems.find((item) =>
+      String(item.transaction_id || "") === normalizedTransactionId ||
+      String(item.original_transaction_id || "") === normalizedTransactionId,
+    );
+
+    if (exactMatch) {
+      return exactMatch;
+    }
+  }
+
+  return matchingProductItems.sort((a, b) => {
+    const aDate = Number(a.purchase_date_ms || 0);
+    const bDate = Number(b.purchase_date_ms || 0);
+    return bDate - aDate;
+  })[0];
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
 function buildPurchaseReceiptId(productId, purchaseToken) {
   return `${productId}_${hashPurchaseToken(purchaseToken)}`;
+}
+
+function buildAppleReceiptId(productId, transactionId) {
+  return `ios_${productId}_${transactionId}`;
 }
 
 function hashPurchaseToken(purchaseToken) {
   return crypto.createHash("sha256").update(String(purchaseToken)).digest("hex");
 }
+
+function getOfferCostForRequest(requestData) {
+  const requestType = String(requestData.requestType || "");
+  if (requestType === "delivery" || requestType === "design") {
+    return PREMIUM_REQUEST_OFFER_COST;
+  }
+
+  return OFFER_COST;
+}
+
 function getCreditValue(data) {
   if (!data) {
     return 0;
@@ -1420,6 +1702,110 @@ function normalizeNotificationText(value) {
     return Buffer.from(text, "latin1").toString("utf8");
   } catch (error) {
     return text;
+  }
+}
+
+async function getModerationAdminUserIds() {
+  const adminIds = new Set();
+
+  try {
+    const configSnap = await db.doc(MODERATION_CONFIG_PATH).get();
+    if (configSnap.exists) {
+      const data = configSnap.data() || {};
+      const configuredIds = Array.isArray(data.adminUserIds) ?
+        data.adminUserIds : [];
+      for (const id of configuredIds) {
+        const normalizedId = String(id || "").trim();
+        if (normalizedId) {
+          adminIds.add(normalizedId);
+        }
+      }
+    }
+  } catch (error) {
+    logger.warn("Failed to read moderation config", error);
+  }
+
+  try {
+    const roleAdminSnapshot = await db
+        .collection("users")
+        .where("role", "==", "admin")
+        .get();
+    for (const doc of roleAdminSnapshot.docs) {
+      adminIds.add(doc.id);
+    }
+  } catch (error) {
+    logger.warn("Failed to query users with admin role", error);
+  }
+
+  try {
+    const flagAdminSnapshot = await db
+        .collection("users")
+        .where("isAdmin", "==", true)
+        .get();
+    for (const doc of flagAdminSnapshot.docs) {
+      adminIds.add(doc.id);
+    }
+  } catch (error) {
+    logger.warn("Failed to query users with isAdmin=true", error);
+  }
+
+  return [...adminIds];
+}
+
+async function notifyModerationAdmins({
+  reportId,
+  reporterId,
+  targetUserId,
+  contentType,
+  reason,
+}) {
+  const adminUserIds = await getModerationAdminUserIds();
+  if (!adminUserIds.length) {
+    logger.info("No moderation admins configured for report", {reportId});
+    return;
+  }
+
+  const reporterName = await getUserDisplayName(reporterId);
+  const targetName = await getUserDisplayName(targetUserId);
+  const batch = db.batch();
+
+  for (const adminUserId of adminUserIds) {
+    const notificationRef = db.collection("notifications").doc();
+    batch.set(notificationRef, {
+      receiverId: adminUserId,
+      title: "Yeni şikayet bildirimi",
+      body: `${reporterName} tarafından ${targetName} için ${contentType} şikayeti oluşturuldu: ${reason}`,
+      type: "moderation_report",
+      reportId,
+      reporterId,
+      targetUserId,
+      contentType,
+      read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  }
+
+  await batch.commit();
+}
+
+async function getUserDisplayName(userId) {
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    return "Bilinmeyen kullanıcı";
+  }
+
+  try {
+    const userSnap = await db.collection("users").doc(normalizedUserId).get();
+    if (!userSnap.exists) {
+      return normalizedUserId;
+    }
+
+    const data = userSnap.data() || {};
+    const name = String(data.name || "").trim();
+    return name || normalizedUserId;
+  } catch (error) {
+    logger.warn("Failed to resolve display name", {userId: normalizedUserId, error});
+    return normalizedUserId;
   }
 }
 

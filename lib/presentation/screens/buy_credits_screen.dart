@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
@@ -78,7 +79,8 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
         );
       } else if (status == MonthlyShareRewardStatus.alreadyClaimed) {
         await _showFeedback(
-          title: context.t('Bu ödülü zaten kullandın', 'You already used this reward'),
+          title: context.t(
+              'Bu ödülü zaten kullandın', 'You already used this reward'),
           message: context.t(
             'Paylaşım ödülü ayda sadece bir kez alınabilir. Gelecek ay tekrar deneyebilirsin.',
             'The sharing reward can only be claimed once per month. You can try again next month.',
@@ -87,7 +89,8 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
         );
       } else {
         await _showFeedback(
-          title: context.t('Paylaşım ödülü şu an hazır değil', 'Share reward is not ready yet'),
+          title: context.t('Paylaşım ödülü şu an hazır değil',
+              'Share reward is not ready yet'),
           message: context.t(
             'Bu özellik şu an kullanılamıyor. Kısa süre sonra tekrar deneyebilirsin.',
             'This feature is currently unavailable. Please try again shortly.',
@@ -98,7 +101,8 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     } catch (_) {
       if (!mounted) return;
       await _showFeedback(
-        title: context.t('Paylaşım tamamlanamadı', 'Sharing could not be completed'),
+        title: context.t(
+            'Paylaşım tamamlanamadı', 'Sharing could not be completed'),
         message: context.t(
           'Uygulamayı paylaşırken bir sorun oluştu. Kısa süre sonra tekrar deneyebilirsin.',
           'There was a problem while sharing the app. Please try again shortly.',
@@ -121,7 +125,30 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
 
     try {
       final products = await iap.loadProducts();
-      final product = products.firstWhere((p) => p.id == productId);
+      ProductDetails? product;
+      for (final candidate in products) {
+        if (candidate.id == productId) {
+          product = candidate;
+          break;
+        }
+      }
+
+      if (product == null) {
+        if (!mounted) return;
+        await _showFeedback(
+          title: context.t(
+            'Kredi paketi mağazada bulunamadı',
+            'Credit pack was not found in the store',
+          ),
+          message: context.t(
+            '$productId ürünü Google Play tarafından uygulamaya döndürülmedi. Play Console ürün kimliği, aktiflik durumu, ülke/fiyat ve test yayınını kontrol et.',
+            '$productId was not returned by Google Play. Check the Play Console product id, active status, country/price, and test release.',
+          ),
+          icon: Icons.storefront_outlined,
+        );
+        return;
+      }
+
       final result = await iap.buy(product);
       if (!mounted) return;
 
@@ -141,7 +168,8 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     } catch (_) {
       if (!mounted) return;
       await _showFeedback(
-        title: context.t('Satın alma doğrulanamadı', 'Purchase could not be verified'),
+        title: context.t(
+            'Satın alma doğrulanamadı', 'Purchase could not be verified'),
         message: context.t(
           'Şu anda satın alma işlemi tamamlanamadı. Kısa süre sonra tekrar deneyebilirsin.',
           'The purchase could not be completed right now. Please try again shortly.',
@@ -182,7 +210,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: colors.last.withOpacity(0.22),
+                color: colors.last.withValues(alpha: 0.22),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -194,9 +222,10 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
                 width: 54,
                 height: 54,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.16),
+                  color: Colors.white.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withOpacity(0.24)),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.24)),
                 ),
                 child: const Icon(
                   Icons.workspace_premium_rounded,
@@ -220,7 +249,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
                     Text(
                       subtitle,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.92),
+                        color: Colors.white.withValues(alpha: 0.92),
                         height: 1.35,
                       ),
                     ),
@@ -273,7 +302,8 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      context.t('Uygulamayı Paylaş, 10 Kredi Kazan', 'Share the App, Earn 10 Credits'),
+                      context.t('Uygulamayı Paylaş, 10 Kredi Kazan',
+                          'Share the App, Earn 10 Credits'),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -295,7 +325,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.74),
+                  color: Colors.white.withValues(alpha: 0.74),
                   borderRadius: BorderRadius.circular(18),
                 ),
                 child: Column(
@@ -322,12 +352,15 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _isClaimingShareReward ? null : _shareAppAndClaimReward,
+                  onPressed:
+                      _isClaimingShareReward ? null : _shareAppAndClaimReward,
                   icon: const Icon(Icons.share_outlined),
                   label: Text(
                     _isClaimingShareReward
-                        ? context.t('Paylaşım kontrol ediliyor...', 'Checking sharing reward...')
-                        : context.t('Paylaş ve 10 kredi kazan', 'Share and earn 10 credits'),
+                        ? context.t('Paylaşım kontrol ediliyor...',
+                            'Checking sharing reward...')
+                        : context.t('Paylaş ve 10 kredi kazan',
+                            'Share and earn 10 credits'),
                   ),
                 ),
               ),
@@ -355,7 +388,8 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
         final docs = snapshot.data!.docs;
         if (docs.isEmpty) {
           return Center(
-            child: Text(context.t('Henüz kredi geçmişi yok.', 'No credit history yet.')),
+            child: Text(context.t(
+                'Henüz kredi geçmişi yok.', 'No credit history yet.')),
           );
         }
 
@@ -366,7 +400,8 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
             final int amount = (data['amount'] as num).toInt();
             final String action = data['action'] ?? '';
             final createdAt = data['createdAt'];
-            final date = createdAt is Timestamp ? createdAt.toDate() : DateTime.now();
+            final date =
+                createdAt is Timestamp ? createdAt.toDate() : DateTime.now();
 
             late final String title;
             late final IconData icon;
@@ -375,31 +410,42 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
             if (amount > 0) {
               color = Colors.green;
               if (action == 'comment' || action == 'review_bonus') {
-                title = context.t('+$amount kredi (yorum ödülü)', '+$amount credits (review reward)');
+                title = context.t('+$amount kredi (yorum ödülü)',
+                    '+$amount credits (review reward)');
                 icon = Icons.rate_review_rounded;
               } else if (action == 'daily_bonus') {
-                title = context.t('+$amount kredi (günlük bonus)', '+$amount credits (daily bonus)');
+                title = context.t('+$amount kredi (günlük bonus)',
+                    '+$amount credits (daily bonus)');
                 icon = Icons.card_giftcard_rounded;
               } else if (action == 'share_reward') {
-                title = context.t('+$amount kredi (uygulamayı paylaş)', '+$amount credits (share the app)');
+                title = context.t('+$amount kredi (uygulamayı paylaş)',
+                    '+$amount credits (share the app)');
                 icon = Icons.share_outlined;
               } else {
-                title = context.t('+$amount kredi yuklendi', '+$amount credits added');
+                title = context.t(
+                    '+$amount kredi yuklendi', '+$amount credits added');
                 icon = Icons.add_circle_rounded;
               }
             } else {
               color = Colors.red;
-              if (action == 'create_listing' || action == 'create_request' || action == 'create_ready_food') {
-                title = context.t('-10 kredi (ilan oluşturma)', '-10 credits (create listing)');
+              if (action == 'create_listing' ||
+                  action == 'create_request' ||
+                  action == 'create_ready_food') {
+                title = context.t('$amount kredi (ilan oluşturma)',
+                    '$amount credits (create listing)');
                 icon = Icons.post_add_rounded;
               } else if (action == 'first_message') {
-                title = context.t('-10 kredi (ilk mesaj)', '-10 credits (first message)');
+                title = context.t('$amount kredi (ilk mesaj)',
+                    '$amount credits (first message)');
                 icon = Icons.chat_bubble_outline_rounded;
-              } else if (action == 'send_offer' || action == 'order_ready_food') {
-                title = context.t('-5 kredi (teklif gönderme)', '-5 credits (send offer)');
+              } else if (action == 'send_offer' ||
+                  action == 'order_ready_food') {
+                title = context.t('$amount kredi (teklif gönderme)',
+                    '$amount credits (send offer)');
                 icon = Icons.local_offer_rounded;
               } else if (action == 'feature') {
-                title = context.t('-50 kredi (öne çıkarma)', '-50 credits (feature listing)');
+                title = context.t('$amount kredi (öne çıkarma)',
+                    '$amount credits (feature listing)');
                 icon = Icons.star_rounded;
               } else {
                 title = '$amount';
@@ -424,12 +470,14 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
                       children: [
                         Text(
                           title,
-                          style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              color: color, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${date.day}.${date.month}.${date.year}',
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                       ],
                     ),
@@ -513,5 +561,3 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     );
   }
 }
-
-

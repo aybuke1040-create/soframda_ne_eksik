@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/core/utils/distance_utils.dart';
@@ -112,6 +112,17 @@ class _OpenRequestsScreenState extends State<OpenRequestsScreen> {
       ),
       body: Column(
         children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+            child: Text(
+              "İlanların güncelliği için unutma ilanların yayında kalma süresi 1 hafta, geç kalma hemen teklif ver !",
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF6A5A45),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
@@ -185,8 +196,8 @@ class _OpenRequestsScreenState extends State<OpenRequestsScreen> {
                 }
 
                 items.sort(
-                  (a, b) =>
-                      (a["distance"] as double).compareTo(b["distance"] as double),
+                  (a, b) => (a["distance"] as double)
+                      .compareTo(b["distance"] as double),
                 );
 
                 if (items.isEmpty) {
@@ -227,7 +238,8 @@ class _OpenRequestsScreenState extends State<OpenRequestsScreen> {
                         final fallbackOwnerName =
                             (item["ownerName"] as String).trim();
 
-                        return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                        return FutureBuilder<
+                            DocumentSnapshot<Map<String, dynamic>>>(
                           future: ownerId.isEmpty
                               ? null
                               : FirebaseFirestore.instance
@@ -235,8 +247,8 @@ class _OpenRequestsScreenState extends State<OpenRequestsScreen> {
                                   .doc(ownerId)
                                   .get(),
                           builder: (context, ownerSnapshot) {
-                            final profileName = ownerSnapshot.data?.data()?["name"]
-                                    as String? ??
+                            final profileName = ownerSnapshot.data
+                                    ?.data()?["name"] as String? ??
                                 "";
                             final ownerName = profileName.trim().isNotEmpty
                                 ? profileName.trim()
@@ -328,4 +340,3 @@ class _InfoChip extends StatelessWidget {
     );
   }
 }
-

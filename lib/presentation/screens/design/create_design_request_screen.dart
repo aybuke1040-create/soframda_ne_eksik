@@ -210,7 +210,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
       } else {
         final success = await CreditService().performAction(
           userId: user.uid,
-          cost: 10,
+          cost: 20,
           actionName: 'create_request',
           onSuccess: () async {
             await requestRef.set({
@@ -230,7 +230,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
         if (!success) {
           PaywallService.showInsufficientCreditsSheet(
             context,
-            title: 'Organizasyon ilanı vermek için 10 kredi gerekiyor',
+            title: 'Organizasyon ilanı vermek için 20 kredi gerekiyor',
             message:
                 'Organizasyon ilanınızı yayına almak için önce kredi satın alabilir, sonra tek dokunuşla devam edebilirsiniz.',
             highlight: 'Organizasyon ilan paketleri',
@@ -284,12 +284,13 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                     controller: titleController,
                     decoration: const InputDecoration(
                       labelText: 'Organizasyon Başlığı',
-                      hintText: 'Örn: 30 kişilik butik nişan masası ve backdrop tasarımı',
+                      hintText:
+                          'Örn: 30 kişilik butik nişan masası ve backdrop tasarımı',
                     ),
                   ),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
-                    value: category.isEmpty ? null : category,
+                    initialValue: category.isEmpty ? null : category,
                     decoration: const InputDecoration(labelText: 'Kategori'),
                     items: categories.entries
                         .map(
@@ -350,7 +351,8 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                     maxLines: 4,
                     decoration: const InputDecoration(
                       labelText: 'Detay',
-                      hintText: 'Renk paleti, masa adedi, çiçek isteği, backdrop ölçüsü, karşılama panosu gibi beklentilerini yaz.',
+                      hintText:
+                          'Renk paleti, masa adedi, çiçek isteği, backdrop ölçüsü, karşılama panosu gibi beklentilerini yaz.',
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -363,7 +365,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                       child: Text(
                         _isEditing
                             ? 'Değişiklikleri Kaydet'
-                            : '10 Kredi ile Premium İlan Ver',
+                            : '20 Kredi ile Premium İlan Ver',
                       ),
                     ),
                   ),
@@ -402,7 +404,7 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
           ),
           SizedBox(height: 10),
           Text(
-            'İlan yayına alma bedeli: 10 kredi',
+            'İlan yayına alma bedeli: 20 kredi',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: Color(0xFFB85C00),
@@ -458,12 +460,12 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
                 ? Image.network(existingImageUrl!, fit: BoxFit.cover)
                 : const Center(
                     child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate_outlined, size: 36),
-                    SizedBox(height: 8),
-                    Text('İlham görseli veya mekan fotosu ekle'),
-                  ],
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_photo_alternate_outlined, size: 36),
+                        SizedBox(height: 8),
+                        Text('İlham görseli veya mekan fotosu ekle'),
+                      ],
                     ),
                   ),
       ),
@@ -476,8 +478,9 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
     final guest = guestController.text.trim();
     final location = locationController.text.trim();
     final detail = descriptionController.text.trim();
-    final categoryLabel =
-        category.isEmpty ? 'Kategori seçilmedi' : (categories[category] ?? category);
+    final categoryLabel = category.isEmpty
+        ? 'Kategori seçilmedi'
+        : (categories[category] ?? category);
 
     return Container(
       padding: const EdgeInsets.all(16),

@@ -208,7 +208,7 @@ class _CreateDeliveryRequestScreenState
       } else {
         final success = await CreditService().performAction(
           userId: user.uid,
-          cost: 10,
+          cost: 20,
           actionName: 'create_request',
           onSuccess: () async {
             await DeliveryService().createDeliveryRequest(
@@ -231,7 +231,7 @@ class _CreateDeliveryRequestScreenState
         }
 
         if (!success) {
-          throw Exception('Taşıma ilanı vermek için 10 kredi gerekiyor.');
+          throw Exception('Taşıma ilanı vermek için 20 kredi gerekiyor.');
         }
       }
 
@@ -257,7 +257,7 @@ class _CreateDeliveryRequestScreenState
       if (message.contains('kredi')) {
         PaywallService.showInsufficientCreditsSheet(
           context,
-          title: 'Taşıma ilanı vermek için 10 kredi gerekiyor',
+          title: 'Taşıma ilanı vermek için 20 kredi gerekiyor',
           message:
               'Taşıma ilanını yayınlamak için önce kredi satın alabilir, sonra işlemini tamamlayabilirsin.',
           buttonLabel: 'Kredi Satın Al',
@@ -382,7 +382,7 @@ class _CreateDeliveryRequestScreenState
                             ? 'Yayınlanıyor...'
                             : _isEditing
                                 ? 'Değişiklikleri Kaydet'
-                                : '10 Kredi ile Premium İlan Ver',
+                                : '20 Kredi ile Premium İlan Ver',
                       ),
                     ),
                   ),
@@ -421,7 +421,7 @@ class _CreateDeliveryRequestScreenState
           ),
           SizedBox(height: 10),
           Text(
-            'İlan yayına alma bedeli: 10 kredi',
+            'İlan yayına alma bedeli: 20 kredi',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: Color(0xFF2C6E99),

@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -175,7 +175,8 @@ class _DeliveryRequestsScreenState extends State<DeliveryRequestsScreen> {
               const SizedBox(height: 24),
               _buildSectionTitle(
                 title: 'Açık Taşıma İlanları',
-                subtitle: 'Yakındaki taşıma, teslimat ve dağıtım ilanları.',
+                subtitle:
+                    'Yakındaki taşıma, teslimat ve dağıtım ilanları. İlanların güncelliği için unutma ilanların yayında kalma süresi 1 hafta, geç kalma hemen teklif ver !',
               ),
               const SizedBox(height: 12),
               _buildRequestGrid(),
@@ -652,4 +653,3 @@ class _DeliveryRequestCard extends StatelessWidget {
     );
   }
 }
-

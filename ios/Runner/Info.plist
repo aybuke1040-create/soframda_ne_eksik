@@ -32,6 +32,8 @@
 	<string>İlanlarına görsel ekleyebilmen için fotoğraf arşivine erişiyoruz.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Seçtiğin görselleri uygulama içinde kullanabilmek için fotoğraf arşivine erişiyoruz.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Profiline, ilanlarına ve yemek paylaşımlarına fotoğraf ekleyebilmen için kameraya erişiyoruz.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
