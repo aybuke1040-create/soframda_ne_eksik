@@ -535,10 +535,6 @@ exports.verifyAndGrantApplePurchase = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Missing receipt data");
   }
 
-  if (source && String(source) !== "app_store") {
-    throw new HttpsError("invalid-argument", "Unsupported purchase source");
-  }
-
   const receipt = await verifyAppleReceipt(normalizedReceiptData);
   const receiptItem = findAppleReceiptItem({
     receipt,
