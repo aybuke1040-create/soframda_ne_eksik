@@ -21,6 +21,7 @@ const PRIVATE_CONTEXT_DOC_ID = "context";
 const READY_FOOD_LIFETIME_DAYS = 2;
 const DEFAULT_REQUEST_LIFETIME_DAYS = 7;
 const APP_PACKAGE_NAME = "com.benyaparim.app";
+const APP_BUNDLE_ID = "com.benyaparim.app";
 const APPLE_VERIFY_RECEIPT_PRODUCTION_URL =
   "https://buy.itunes.apple.com/verifyReceipt";
 const APPLE_VERIFY_RECEIPT_SANDBOX_URL =
@@ -535,9 +536,8 @@ exports.verifyAndGrantApplePurchase = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Missing receipt data");
   }
 
-  const receipt = await verifyAppleReceipt(normalizedReceiptData);
-  const receiptItem = findAppleReceiptItem({
-    receipt,
+  const receiptItem = await resolveAppleReceiptItem({
+    receiptData: normalizedReceiptData,
     productId: normalizedProductId,
     transactionId: String(transactionId || purchaseId || ""),
   });
@@ -596,7 +596,7 @@ exports.verifyAndGrantApplePurchase = onCall(async (request) => {
       originalTransactionId: String(receiptItem.original_transaction_id || ""),
       creditsGranted: creditsToGrant,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      receiptStatus: Number(receipt.status ?? -1),
+      receiptStatus: Number(receiptItem.receipt_status ?? 0),
       raw: receiptItem,
     });
 
@@ -1492,6 +1492,108 @@ async function verifyAppleReceipt(receiptData) {
   }
 
   return productionResponse;
+}
+
+async function resolveAppleReceiptItem({receiptData, productId, transactionId}) {
+  if (isLikelyJws(receiptData)) {
+    const transaction = parseAppleTransactionJws(receiptData);
+    validateAppleTransactionPayload({
+      transaction,
+      productId,
+      transactionId,
+    });
+
+    return {
+      product_id: String(transaction.productId || ""),
+      transaction_id: String(transaction.transactionId || ""),
+      original_transaction_id: String(transaction.originalTransactionId || ""),
+      purchase_date_ms: String(transaction.purchaseDate || transaction.signedDate || ""),
+      environment: String(transaction.environment || ""),
+      bundle_id: String(transaction.bundleId || ""),
+      receipt_status: 0,
+      source: "storekit2_jws",
+    };
+  }
+
+  const receipt = await verifyAppleReceipt(receiptData);
+  const receiptItem = findAppleReceiptItem({
+    receipt,
+    productId,
+    transactionId,
+  });
+
+  if (!receiptItem) {
+    return null;
+  }
+
+  return {
+    ...receiptItem,
+    receipt_status: Number(receipt.status ?? 0),
+    source: "verify_receipt",
+  };
+}
+
+function isLikelyJws(value) {
+  return String(value || "").split(".").length === 3;
+}
+
+function parseAppleTransactionJws(jws) {
+  const parts = String(jws || "").split(".");
+  if (parts.length !== 3 || !parts[1]) {
+    throw new HttpsError("invalid-argument", "Invalid Apple transaction data");
+  }
+
+  try {
+    const payload = Buffer.from(base64UrlToBase64(parts[1]), "base64")
+        .toString("utf8");
+    return JSON.parse(payload);
+  } catch (error) {
+    logger.warn("Failed to parse Apple transaction JWS", error);
+    throw new HttpsError("invalid-argument", "Invalid Apple transaction data");
+  }
+}
+
+function base64UrlToBase64(value) {
+  const normalized = String(value || "")
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+  return normalized.padEnd(
+      normalized.length + ((4 - normalized.length % 4) % 4),
+      "=",
+  );
+}
+
+function validateAppleTransactionPayload({
+  transaction,
+  productId,
+  transactionId,
+}) {
+  const payloadProductId = String(transaction.productId || "");
+  const payloadTransactionId = String(transaction.transactionId || "");
+  const payloadOriginalTransactionId =
+    String(transaction.originalTransactionId || "");
+  const payloadBundleId = String(transaction.bundleId || "");
+  const expectedTransactionId = String(transactionId || "");
+
+  if (payloadProductId !== productId) {
+    throw new HttpsError("failed-precondition", "Apple product mismatch");
+  }
+
+  if (payloadBundleId && payloadBundleId !== APP_BUNDLE_ID) {
+    throw new HttpsError("failed-precondition", "Apple bundle mismatch");
+  }
+
+  if (!payloadTransactionId && !payloadOriginalTransactionId) {
+    throw new HttpsError("failed-precondition", "Missing transaction id");
+  }
+
+  if (
+    expectedTransactionId &&
+    payloadTransactionId !== expectedTransactionId &&
+    payloadOriginalTransactionId !== expectedTransactionId
+  ) {
+    throw new HttpsError("failed-precondition", "Apple transaction mismatch");
+  }
 }
 
 async function callAppleVerifyReceipt(url, receiptData) {
