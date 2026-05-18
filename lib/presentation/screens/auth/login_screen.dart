@@ -10,8 +10,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  static const bool _phoneAuthEnabled = false;
-
   final AuthService _auth = AuthService();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _codeController = TextEditingController();
@@ -20,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _loading = false;
   bool _codeSent = false;
-  bool _useEmailAuth = true;
+  bool _useEmailAuth = false;
   bool _isEmailRegister = false;
   String _verificationId = '';
   int? _resendToken;
@@ -54,7 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (local.startsWith('0')) {
       local = local.substring(1);
     }
-
     if (local.length != 10) {
       return null;
     }
@@ -66,10 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) {
       return;
     }
-    ActionFeedbackService.showMessage(
-      context,
-      message: message,
-    );
+    ActionFeedbackService.showMessage(context, message: message);
   }
 
   Future<void> _emailAuth() async {
@@ -80,7 +74,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _showMessage('Geçerli bir e-posta adresi girin.');
       return;
     }
-
     if (password.length < 6) {
       _showMessage('Şifre en az 6 karakter olmalı.');
       return;
@@ -199,14 +192,14 @@ class _LoginScreenState extends State<LoginScreen> {
       hintText: hint,
       prefixIcon: Icon(icon, color: const Color(0xFF7B4C20)),
       filled: true,
-      fillColor: Colors.white.withOpacity(0.92),
+      fillColor: Colors.white.withValues(alpha: 0.92),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
-        borderSide: BorderSide(color: const Color(0xFFEAD7BE)),
+        borderSide: const BorderSide(color: Color(0xFFEAD7BE)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(20),
@@ -264,10 +257,13 @@ class _LoginScreenState extends State<LoginScreen> {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFF6E3DB6) : Colors.white.withOpacity(0.82),
+            color: selected
+                ? const Color(0xFF6E3DB6)
+                : Colors.white.withValues(alpha: 0.82),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected ? const Color(0xFF6E3DB6) : const Color(0xFFE5D7F8),
+              color:
+                  selected ? const Color(0xFF6E3DB6) : const Color(0xFFE5D7F8),
             ),
           ),
           child: Row(
@@ -300,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
             : 'E-posta ile güvenli giriş yap.')
         : (_codeSent
             ? 'Kod geldi, şimdi doğrulayalım.'
-            : 'Telefonunla hızlıca devam et.');
+            : 'Telefon numaranla güvenli şekilde başla.');
 
     final subtitle = _useEmailAuth
         ? (_isEmailRegister
@@ -308,7 +304,7 @@ class _LoginScreenState extends State<LoginScreen> {
             : 'Sana özel ilan, teklif ve mesaj akışına kaldığın yerden dön.')
         : (_codeSent
             ? 'Telefonuna gelen 6 haneli kodu gir, hesabın hemen açılsın.'
-            : 'Mahallendeki yemek, ikram ve organizasyon fırsatlarını birkaç dokunuşla keşfet.');
+            : 'Önceliğimiz telefon doğrulaması. İstersen e-posta seçeneğiyle de devam edebilirsin.');
 
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
@@ -325,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6A2FA3).withOpacity(0.28),
+            color: const Color(0xFF6A2FA3).withValues(alpha: 0.28),
             blurRadius: 28,
             offset: const Offset(0, 16),
           ),
@@ -339,9 +335,11 @@ class _LoginScreenState extends State<LoginScreen> {
               width: 128,
               height: 128,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.10),
+                color: Colors.white.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: Colors.white.withOpacity(0.18)),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.18),
+                ),
               ),
               padding: const EdgeInsets.all(14),
               child: ClipRRect(
@@ -377,73 +375,43 @@ class _LoginScreenState extends State<LoginScreen> {
           Text(
             subtitle,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.88),
+              color: Colors.white.withValues(alpha: 0.88),
               fontSize: 14,
               height: 1.55,
             ),
           ),
           const SizedBox(height: 18),
-          if (_phoneAuthEnabled)
-            Row(
-              children: [
-                _buildModeChip(
-                  title: 'Telefon',
-                  icon: Icons.phone_iphone_rounded,
-                  selected: !_useEmailAuth,
-                  onTap: () {
-                    setState(() {
-                      _useEmailAuth = false;
-                      _codeSent = false;
-                      _verificationId = '';
-                      _codeController.clear();
-                    });
-                  },
-                ),
-                const SizedBox(width: 12),
-                _buildModeChip(
-                  title: 'E-posta',
-                  icon: Icons.alternate_email_rounded,
-                  selected: _useEmailAuth,
-                  onTap: () {
-                    setState(() {
-                      _useEmailAuth = true;
-                      _codeSent = false;
-                      _verificationId = '';
-                      _codeController.clear();
-                    });
-                  },
-                ),
-              ],
-            )
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.16),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.18)),
+          Row(
+            children: [
+              _buildModeChip(
+                title: 'Telefon',
+                icon: Icons.phone_iphone_rounded,
+                selected: !_useEmailAuth,
+                onTap: () {
+                  setState(() {
+                    _useEmailAuth = false;
+                    _codeSent = false;
+                    _verificationId = '';
+                    _codeController.clear();
+                  });
+                },
               ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.mark_email_read_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Kapalı testte giriş e-posta ile devam ediyor.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.92),
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 12),
+              _buildModeChip(
+                title: 'E-posta',
+                icon: Icons.alternate_email_rounded,
+                selected: _useEmailAuth,
+                onTap: () {
+                  setState(() {
+                    _useEmailAuth = true;
+                    _codeSent = false;
+                    _verificationId = '';
+                    _codeController.clear();
+                  });
+                },
               ),
-            ),
+            ],
+          ),
         ],
       ),
     );
@@ -453,12 +421,12 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.72),
+        color: Colors.white.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(color: const Color(0xFFF0E3D1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -469,6 +437,136 @@ class _LoginScreenState extends State<LoginScreen> {
         children: children,
       ),
     );
+  }
+
+  List<Widget> _buildEmailFields() {
+    return [
+      TextField(
+        controller: _emailController,
+        keyboardType: TextInputType.emailAddress,
+        decoration: _inputDecoration(
+          label: 'E-posta adresi',
+          hint: 'ornek@mail.com',
+          icon: Icons.alternate_email_rounded,
+        ),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        controller: _passwordController,
+        obscureText: true,
+        decoration: _inputDecoration(
+          label: 'Şifre',
+          hint: 'En az 6 karakter',
+          icon: Icons.lock_outline_rounded,
+        ),
+      ),
+      const SizedBox(height: 18),
+      _buildPrimaryButton(
+        label: _isEmailRegister ? 'Kaydol ve Başla' : 'Giriş Yap',
+        onPressed: _loading ? null : _emailAuth,
+      ),
+      const SizedBox(height: 10),
+      if (!_isEmailRegister)
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _loading ? null : _resetPassword,
+            child: const Text('Şifremi Unuttum'),
+          ),
+        ),
+      const SizedBox(height: 6),
+      TextButton(
+        onPressed: _loading
+            ? null
+            : () {
+                setState(() {
+                  _isEmailRegister = !_isEmailRegister;
+                });
+              },
+        child: Text(
+          _isEmailRegister
+              ? 'Zaten hesabın var mı? Giriş yap'
+              : 'Hesabın yok mu? Kaydol',
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildPhoneFields() {
+    if (!_codeSent) {
+      return [
+        TextField(
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+          decoration: _inputDecoration(
+            label: 'Telefon numarası',
+            hint: '5XX XXX XX XX',
+            icon: Icons.phone_outlined,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8EE),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFF0DFC3)),
+          ),
+          child: const Text(
+            'Numaranı 5XXXXXXXXX ya da +905XXXXXXXXX formatında girebilirsin. SMS alamazsan e-posta seçeneğiyle devam edebilirsin.',
+            style: TextStyle(
+              color: Color(0xFF7F6A57),
+              height: 1.45,
+            ),
+          ),
+        ),
+        const SizedBox(height: 18),
+        _buildPrimaryButton(
+          label: 'SMS Kodu Gönder',
+          onPressed: _loading ? null : _sendCode,
+        ),
+      ];
+    }
+
+    return [
+      TextField(
+        controller: _codeController,
+        keyboardType: TextInputType.number,
+        maxLength: 6,
+        decoration: _inputDecoration(
+          label: 'SMS doğrulama kodu',
+          hint: '6 haneli kod',
+          icon: Icons.verified_outlined,
+        ).copyWith(counterText: ''),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        _normalizePhoneNumber(_phoneController.text) ?? _phoneController.text,
+        style: const TextStyle(color: Color(0xFF7F756D)),
+      ),
+      const SizedBox(height: 18),
+      _buildPrimaryButton(
+        label: 'Girişi Tamamla',
+        onPressed: _loading ? null : _verifyCode,
+      ),
+      const SizedBox(height: 8),
+      TextButton(
+        onPressed: _loading
+            ? null
+            : () {
+                setState(() {
+                  _codeSent = false;
+                  _verificationId = '';
+                  _codeController.clear();
+                });
+              },
+        child: const Text('Numarayı Değiştir'),
+      ),
+      TextButton(
+        onPressed: _loading ? null : () => _sendCode(isResend: true),
+        child: const Text('Kodu Tekrar Gönder'),
+      ),
+    ];
   }
 
   @override
@@ -499,131 +597,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 20),
                     _buildSurface(
                       children: _useEmailAuth
-                          ? [
-                              TextField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: _inputDecoration(
-                                  label: 'E-posta adresi',
-                                  hint: 'ornek@mail.com',
-                                  icon: Icons.alternate_email_rounded,
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              TextField(
-                                controller: _passwordController,
-                                obscureText: true,
-                                decoration: _inputDecoration(
-                                  label: 'Şifre',
-                                  hint: 'En az 6 karakter',
-                                  icon: Icons.lock_outline_rounded,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              _buildPrimaryButton(
-                                label: _isEmailRegister ? 'Kaydol ve Başla' : 'Giriş Yap',
-                                onPressed: _loading ? null : _emailAuth,
-                              ),
-                              const SizedBox(height: 10),
-                              if (!_isEmailRegister)
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: _loading ? null : _resetPassword,
-                                    child: const Text('Şifremi Unuttum'),
-                                  ),
-                                ),
-                              const SizedBox(height: 6),
-                              TextButton(
-                                onPressed: _loading
-                                    ? null
-                                    : () {
-                                        setState(() {
-                                          _isEmailRegister = !_isEmailRegister;
-                                        });
-                                      },
-                                child: Text(
-                                  _isEmailRegister
-                                      ? 'Zaten hesabın var mı? Giriş yap'
-                                      : 'Hesabın yok mu? Kaydol',
-                                ),
-                              ),
-                            ]
-                          : (!_codeSent
-                              ? [
-                                  TextField(
-                                    controller: _phoneController,
-                                    keyboardType: TextInputType.phone,
-                                    decoration: _inputDecoration(
-                                      label: 'Telefon numarası',
-                                      hint: '5XX XXX XX XX',
-                                      icon: Icons.phone_outlined,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFFFF8EE),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: const Color(0xFFF0DFC3)),
-                                    ),
-                                    child: const Text(
-                                      'Numaranı 5XXXXXXXXX ya da +905XXXXXXXXX formatında girebilirsin.',
-                                      style: TextStyle(
-                                        color: Color(0xFF7F6A57),
-                                        height: 1.45,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 18),
-                                  _buildPrimaryButton(
-                                    label: 'SMS Kodu Gönder',
-                                    onPressed: _loading ? null : _sendCode,
-                                  ),
-                                ]
-                              : [
-                                  TextField(
-                                    controller: _codeController,
-                                    keyboardType: TextInputType.number,
-                                    maxLength: 6,
-                                    decoration: _inputDecoration(
-                                      label: 'SMS doğrulama kodu',
-                                      hint: '6 haneli kod',
-                                      icon: Icons.verified_outlined,
-                                    ).copyWith(counterText: ''),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _normalizePhoneNumber(_phoneController.text) ??
-                                        _phoneController.text,
-                                    style: const TextStyle(
-                                      color: Color(0xFF7F756D),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 18),
-                                  _buildPrimaryButton(
-                                    label: 'Girişi Tamamla',
-                                    onPressed: _loading ? null : _verifyCode,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  TextButton(
-                                    onPressed: _loading
-                                        ? null
-                                        : () {
-                                            setState(() {
-                                              _codeSent = false;
-                                              _verificationId = '';
-                                              _codeController.clear();
-                                            });
-                                          },
-                                    child: const Text('Numarayı Değiştir'),
-                                  ),
-                                  TextButton(
-                                    onPressed: _loading ? null : () => _sendCode(isResend: true),
-                                    child: const Text('Kodu Tekrar Gönder'),
-                                  ),
-                                ]),
+                          ? _buildEmailFields()
+                          : _buildPhoneFields(),
                     ),
                   ],
                 ),

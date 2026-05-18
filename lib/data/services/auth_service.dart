@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
@@ -105,7 +105,7 @@ class AuthService {
     if (user == null) {
       throw FirebaseAuthException(
         code: 'no-current-user',
-        message: 'Aktif kullanici bulunamadi.',
+        message: 'Aktif kullanıcı bulunamadı.',
       );
     }
 
@@ -135,7 +135,7 @@ class AuthService {
     final authDisplayName = (user.displayName ?? '').trim();
     final publicName = existingName.isNotEmpty
         ? existingName
-        : (authDisplayName.isNotEmpty ? authDisplayName : 'Kullanici');
+        : (authDisplayName.isNotEmpty ? authDisplayName : 'Kullanıcı');
     final publicPhotoUrl = (existingData['photoUrl'] as String? ?? '').trim();
 
     final payload = {
@@ -191,22 +191,5 @@ class AuthService {
     }
 
     return error.toString();
-  }
-
-  String _mapFirebaseError(FirebaseAuthException error) {
-    switch (error.code) {
-      case 'invalid-phone-number':
-        return 'Telefon numaras\u0131 ge\u00e7ersiz g\u00f6r\u00fcn\u00fcyor.';
-      case 'too-many-requests':
-        return '\u00c7ok fazla deneme yap\u0131ld\u0131. Biraz sonra tekrar deneyin.';
-      case 'invalid-verification-code':
-        return 'SMS do\u011frulama kodu hatal\u0131.';
-      case 'session-expired':
-        return 'Kodun s\u00fcresi doldu. L\u00fctfen yeni kod isteyin.';
-      case 'network-request-failed':
-        return '\u0130nternet ba\u011flant\u0131s\u0131n\u0131 kontrol edip tekrar deneyin.';
-      default:
-        return error.message ?? 'Giri\u015f s\u0131ras\u0131nda bir hata olu\u015ftu.';
-    }
   }
 }
