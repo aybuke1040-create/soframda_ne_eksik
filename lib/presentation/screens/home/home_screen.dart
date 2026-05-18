@@ -1,7 +1,8 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/core/utils/distance_utils.dart';
 import 'package:soframda_ne_eksik/core/utils/location_utils.dart';
@@ -135,6 +136,129 @@ class _HomeScreenState extends State<HomeScreen> {
       isLoading = false;
       isFeaturedMode = featured;
     });
+  }
+
+  Future<void> _shareAppForLocalGrowth() async {
+    const appLink =
+        'https://play.google.com/store/apps/details?id=com.benyaparim.app';
+    const message =
+        'Ben Yaparım 30 km çevrendeki ilanları ve yardımlaşma taleplerini gösterir. '
+        'Bölgemizde kullanıcı arttıkça ilanlar daha hızlı eşleşecek. Sen de katıl: $appLink';
+
+    await Share.share(message);
+
+    final rewardStatus = await CreditService().claimMonthlyShareReward();
+    if (!mounted) {
+      return;
+    }
+
+    if (rewardStatus == MonthlyShareRewardStatus.success) {
+      showCreditAnimation(context, "+10");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t(
+              'Paylaşım ödülün hesabına eklendi.',
+              'Your sharing reward has been added.',
+            ),
+          ),
+        ),
+      );
+    } else if (rewardStatus == MonthlyShareRewardStatus.alreadyClaimed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t(
+              'Bu ayın paylaşım ödülünü zaten aldın.',
+              'You already claimed this month\'s sharing reward.',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildLocalGrowthEmptyState() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF8EF),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFF0DFC3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFE3C2),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.location_on_outlined,
+                    color: Color(0xFFFF7700),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    context.t(
+                      'Bölgende ağ yeni kuruluyor',
+                      'Your local network is just starting',
+                    ),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              context.t(
+                'İlanlar 30 km çevrende gösterilir. Bu yüzden yakınında henüz az kullanıcı varsa bir süre daha az ilan görebilirsin. Tanıdıklarını davet ettikçe bölgedeki ilan ve teklif sayısı artar.',
+                'Listings are shown within 30 km. If there are only a few users near you, you may see fewer listings for now. As you invite people you know, listings and offers in your area grow.',
+              ),
+              style: const TextStyle(
+                height: 1.45,
+                color: Color(0xFF6E6253),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _shareAppForLocalGrowth,
+                  icon: const Icon(Icons.ios_share),
+                  label: Text(context.t('Paylaş', 'Share')),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => req.MyRequestsScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add),
+                  label: Text(context.t('İlan Aç', 'Create Listing')),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget buildHeader() {
@@ -337,11 +461,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }).toList();
 
         if (visibleFoods.isEmpty) {
-          return Center(
-            child: Text(
-              context.t('Yakında yemek bulunamadı', 'No nearby meals found'),
-            ),
-          );
+          return _buildLocalGrowthEmptyState();
         }
 
         final sortedFoods = visibleFoods.map((doc) {
@@ -514,7 +634,7 @@ class ServiceCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 6,
             ),
           ],
