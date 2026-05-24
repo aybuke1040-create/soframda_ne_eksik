@@ -3,8 +3,8 @@ const fs = require("fs");
 const path = require("path");
 
 const targets = [
-  ["android.svg", "https://www.benyaparim.app/download#android"],
-  ["ios.svg", "https://www.benyaparim.app/download#ios"]
+  ["android.svg", "https://play.google.com/store/apps/details?id=com.benyaparim.app"],
+  ["ios.svg", "https://apps.apple.com/app/id6762226701"]
 ];
 
 const outDir = path.join(process.cwd(), "public", "qr");
@@ -16,7 +16,7 @@ fs.mkdirSync(outDir, { recursive: true });
       type: "svg",
       margin: 1,
       color: { dark: "#20152F", light: "#FFFFFF" },
-      width: 180
+      width: 256
     });
 
     fs.writeFileSync(path.join(outDir, name), svg, "utf8");

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
 
-  static const String supportEmail = 'destek@soframdaneeksik.com';
+  static const String supportEmail = 'benyaparimci@gmail.com';
   static const String instagramHandle = '@soframdaneeksik';
   static const String businessHours = 'Hafta ici 09.00 - 18.00';
 
@@ -114,13 +114,15 @@ class ContactUsScreen extends StatelessWidget {
             icon: Icons.mail_outline,
             title: 'Destek E-postasi',
             value: supportEmail,
-            subtitle: 'Uygulama, odeme ve hesap konulari icin bize yazabilirsiniz.',
+            subtitle:
+                'Uygulama, odeme ve hesap konulari icin bize yazabilirsiniz.',
           ),
           _infoCard(
             icon: Icons.camera_alt_outlined,
             title: 'Instagram',
             value: instagramHandle,
-            subtitle: 'Guncellemeler ve duyurular icin sosyal medya hesabimizi takip edebilirsiniz.',
+            subtitle:
+                'Guncellemeler ve duyurular icin sosyal medya hesabimizi takip edebilirsiniz.',
           ),
           _infoCard(
             icon: Icons.schedule_outlined,

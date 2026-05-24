@@ -17,6 +17,7 @@ import 'package:soframda_ne_eksik/presentation/screens/ready_to_serve/ready_to_s
 import 'package:soframda_ne_eksik/presentation/screens/recipes/recipes_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/requests/my_requests_screen.dart'
     as req;
+import 'package:soframda_ne_eksik/presentation/screens/requests/all_active_requests_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/requests/open_requests_screen.dart';
 import 'package:soframda_ne_eksik/presentation/widgets/credit_badge.dart';
 import 'package:soframda_ne_eksik/presentation/widgets/food_request_card.dart';
@@ -585,6 +586,59 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget buildAllActiveRequestsSection() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Tüm Aktif İlanlar',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AllActiveRequestsScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  label: const Text('Tümünü Gör'),
+                ),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 2, 16, 6),
+            child: Text(
+              'Mesafe ayrımı olmadan yayındaki açık ilanları keşfet.',
+              style: TextStyle(
+                color: Color(0xFF6E6253),
+                height: 1.35,
+              ),
+            ),
+          ),
+          const AllActiveRequestsScreen(
+            previewLimit: 6,
+            embedded: true,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final maxWidth = _contentMaxWidth(context);
@@ -603,6 +657,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 buildSectionTitle(),
                 const SizedBox(height: 10),
                 buildNearbyFoods(),
+                buildAllActiveRequestsSection(),
               ],
             ),
           ),

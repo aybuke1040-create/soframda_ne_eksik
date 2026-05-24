@@ -1,9 +1,11 @@
-﻿import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/core/auth_wrapper.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/data/services/auth_service.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/edit_profile_screen.dart';
+import 'package:soframda_ne_eksik/presentation/screens/settings/admin_moderation_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/blocked_users_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/community_terms_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/contact_us_screen.dart';
@@ -46,7 +48,9 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  context.t('\u00c7\u0131k\u0131\u015f yap\u0131ls\u0131n m\u0131?', 'Sign out?'),
+                  context.t(
+                      '\u00c7\u0131k\u0131\u015f yap\u0131ls\u0131n m\u0131?',
+                      'Sign out?'),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -80,7 +84,8 @@ class SettingsScreen extends StatelessWidget {
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
                         ),
-                        child: Text(context.t('\u00c7\u0131k\u0131\u015f Yap', 'Sign Out')),
+                        child: Text(context.t(
+                            '\u00c7\u0131k\u0131\u015f Yap', 'Sign Out')),
                       ),
                     ),
                   ],
@@ -112,7 +117,8 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
-                  context.t('\u00c7\u0131k\u0131\u015f yap\u0131l\u0131yor...', 'Signing out...'),
+                  context.t('\u00c7\u0131k\u0131\u015f yap\u0131l\u0131yor...',
+                      'Signing out...'),
                 ),
               ),
             ],
@@ -228,7 +234,8 @@ class SettingsScreen extends StatelessWidget {
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
                         ),
-                        child: Text(context.t('Hesab\u0131 Sil', 'Delete Account')),
+                        child: Text(
+                            context.t('Hesab\u0131 Sil', 'Delete Account')),
                       ),
                     ),
                   ],
@@ -292,6 +299,41 @@ class SettingsScreen extends StatelessWidget {
       subtitle: subtitle == null ? null : Text(subtitle),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: onTap,
+    );
+  }
+
+  Widget _adminTile(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        final data = snapshot.data?.data() ?? const <String, dynamic>{};
+        final isAdmin = data['role'] == 'admin' || data['isAdmin'] == true;
+        if (!isAdmin) {
+          return const SizedBox.shrink();
+        }
+
+        return _tile(
+          icon: Icons.admin_panel_settings_outlined,
+          title: 'Admin Paneli',
+          subtitle: 'Şikayet ve moderasyon kayıtlarını incele',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const AdminModerationScreen(),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -363,6 +405,7 @@ class SettingsScreen extends StatelessWidget {
               );
             },
           ),
+          _adminTile(context),
           _tile(
             icon: Icons.support_agent,
             title: context.t('Bize Ula\u015f\u0131n', 'Contact Us'),

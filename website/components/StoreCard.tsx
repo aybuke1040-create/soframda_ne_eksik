@@ -42,7 +42,9 @@ export function StoreCard({ id, platform, buttonLabel, href, qrSrc, note }: Stor
         <div className="rounded-[2rem] border border-plum-100 bg-white p-5 text-center">
           <Image src={qrSrc} alt={`${platform} QR kodu`} width={180} height={180} className="mx-auto" />
           <p className="mt-4 text-sm font-semibold text-slate-600">
-            {isActive ? "Telefonundan QR okut, uygulamayı hemen indir." : "Bu platform için mağaza bağlantısı yayınlandığında burada aktif olacak."}
+            {isActive
+              ? "Telefonundan QR okut, uygulamayı hemen indir."
+              : "Bu platform için mağaza bağlantısı yayınlandığında burada aktif olacak."}
           </p>
         </div>
       </div>

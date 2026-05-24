@@ -21,6 +21,8 @@ body {
     linear-gradient(180deg, #fff8ef 0%, #ffffff 48%, #fff9f2 100%);
   color: var(--foreground);
   font-family: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 a {

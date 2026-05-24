@@ -28,7 +28,8 @@ export function SupportForm() {
     <div className="glass-card rounded-4xl p-6 sm:p-8">
       <h2 className="text-2xl font-black text-ink">İletişim formu</h2>
       <p className="mt-3 text-sm leading-6 text-slate-600">
-        Formu doldurduğunda varsayılan e-posta uygulaman açılır ve destek talebin hazır biçimde oluşturulur.
+        Formu doldurduğunda varsayılan e-posta uygulaman açılır ve destek talebin hazır
+        biçimde oluşturulur.
       </p>
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <input

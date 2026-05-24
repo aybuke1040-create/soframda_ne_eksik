@@ -1,0 +1,45 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="120" y1="86" x2="898" y2="936" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6D36B"/>
+      <stop offset="0.48" stop-color="#D9A62A"/>
+      <stop offset="1" stop-color="#8F6111"/>
+    </linearGradient>
+    <linearGradient id="card" x1="292" y1="226" x2="760" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E4"/>
+      <stop offset="1" stop-color="#F5E0A2"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(512 360) rotate(90) scale(420)">
+      <stop stop-color="white" stop-opacity="0.52"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="200" y="170" width="624" height="624" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="28" flood-color="#5B3E00" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="64" fill="url(#bg)"/>
+  <circle cx="204" cy="186" r="116" fill="white" fill-opacity="0.09"/>
+  <circle cx="842" cy="834" r="150" fill="#FFE39B" fill-opacity="0.12"/>
+  <path d="M110 810C226 722 370 734 494 804C624 876 754 884 910 770" stroke="white" stroke-opacity="0.12" stroke-width="22" stroke-linecap="round"/>
+  <rect width="1024" height="1024" rx="64" fill="url(#glow)"/>
+
+  <g filter="url(#shadow)">
+    <rect x="256" y="206" width="512" height="612" rx="42" fill="url(#card)"/>
+    <rect x="256" y="206" width="512" height="612" rx="42" stroke="white" stroke-opacity="0.5" stroke-width="3"/>
+  </g>
+
+  <circle cx="340" cy="286" r="18" fill="#C8921D" fill-opacity="0.65"/>
+  <circle cx="690" cy="306" r="14" fill="#C8921D" fill-opacity="0.42"/>
+  <circle cx="690" cy="724" r="20" fill="#C8921D" fill-opacity="0.55"/>
+
+  <g opacity="0.96">
+    <circle cx="360" cy="654" r="58" fill="#C8921D"/>
+    <circle cx="417" cy="616" r="44" fill="#DFAF38"/>
+    <circle cx="446" cy="680" r="36" fill="#F5D779"/>
+  </g>
+
+  <text x="512" y="380" text-anchor="middle" fill="#7C5600" font-size="86" font-weight="700" font-family="Arial, Helvetica, sans-serif">300 Kredi</text>
+  <text x="512" y="468" text-anchor="middle" fill="#986A04" font-size="44" font-weight="600" font-family="Arial, Helvetica, sans-serif">Kredi Paketi</text>
+  <text x="512" y="585" text-anchor="middle" fill="#906303" font-size="28" font-weight="500" font-family="Arial, Helvetica, sans-serif" letter-spacing="4">APP STORE TANITIM GORSELI</text>
+</svg>

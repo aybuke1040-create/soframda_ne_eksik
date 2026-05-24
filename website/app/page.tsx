@@ -5,6 +5,8 @@ import { PhoneMockup } from "@/components/PhoneMockup";
 import { SectionIntro } from "@/components/SectionIntro";
 import { categories, siteConfig, steps, trustPoints } from "@/components/site-config";
 
+const quickHighlights = ["Ücretsiz kayıt", "Hızlı teklif akışı", "Mahallene yakın hizmetler"] as const;
+
 export default function HomePage() {
   const organizationSchema = {
     "@context": "https://schema.org",
@@ -40,48 +42,81 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
+
       <section className="mesh overflow-hidden">
-        <div className="section-shell grid gap-12 py-14 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:py-24">
+        <div className="section-shell grid gap-12 py-14 lg:grid-cols-[1.08fr_.92fr] lg:items-center lg:py-24">
           <div>
-            <div className="inline-flex rounded-full border border-plum-200 bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-plum-700">
-              Mahallendeki yemek, ikram ve organizasyon işlerini tek yerde bul.
+            <div className="inline-flex rounded-full border border-plum-200 bg-white/85 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-plum-700 shadow-sm">
+              Mahallendeki yemek, ikram ve organizasyon işleri tek yerde
             </div>
-            <h1 className="mt-6 max-w-3xl text-5xl font-black leading-tight tracking-tight text-ink sm:text-6xl">
+
+            <h1 className="mt-6 max-w-3xl text-5xl font-black leading-[1.02] tracking-tight text-ink sm:text-6xl">
               İhtiyacını yaz, doğru teklifleri al, işini güvenle çözüme ulaştır.
             </h1>
+
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-              Ben Yaparım ile ev yemeğinden organizasyona, taşımadan tasarıma kadar aradığın hizmete hızlıca ulaş.
-              İlan ver, teklifleri karşılaştır, mesajlaş ve sana en uygun kişiyle kolayca buluş.
+              Ben Yaparım ile ev yemeğinden organizasyona, taşımadan tasarıma kadar aradığın
+              hizmete hızlıca ulaş. İlan ver, teklifleri karşılaştır, mesajlaş ve sana en
+              uygun kişiyle kolayca buluş.
             </p>
+
             <div className="mt-8">
               <DownloadButtons />
             </div>
 
+            <div className="mt-6 flex flex-wrap gap-3">
+              {quickHighlights.map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-white/80 bg-white/75 px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+
             <div className="mt-10 grid gap-4 sm:grid-cols-2">
-              <div className="glass-card rounded-4xl p-5">
-                <p className="text-sm font-black text-ink">Android QR</p>
-                <Image src="/qr/android.svg" alt="Android QR" width={132} height={132} className="mt-4" />
+              <div className="glass-card rounded-[2rem] p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-black text-ink">Android için indir</p>
+                    <p className="mt-1 text-sm text-slate-600">QR okut ya da doğrudan Google Play'e geç.</p>
+                  </div>
+                  <Image src="/qr/android.svg" alt="Android QR" width={96} height={96} className="shrink-0" />
+                </div>
               </div>
-              <div className="glass-card rounded-4xl p-5">
-                <p className="text-sm font-black text-ink">iPhone QR</p>
-                <Image src="/qr/ios.svg" alt="iPhone QR" width={132} height={132} className="mt-4" />
+              <div className="glass-card rounded-[2rem] p-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-black text-ink">iPhone için indir</p>
+                    <p className="mt-1 text-sm text-slate-600">App Store sayfasına tek dokunuşla ulaş.</p>
+                  </div>
+                  <Image src="/qr/ios.svg" alt="iPhone QR" width={96} height={96} className="shrink-0" />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="grid items-start gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            <PhoneMockup
-              title="Teklifleri karşılaştır"
-              subtitle="Yerel hizmet verenlerle hızlı eşleş"
-              image="/screens/request-feed.png"
-              accent="bg-plum-500"
-            />
-            <PhoneMockup
-              title="Hazır yemekleri keşfet"
-              subtitle="Sipariş ve mesaj akışı tek yerde"
-              image="/screens/food-card.jpg"
-              accent="bg-aqua"
-            />
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-x-6 top-8 hidden h-[76%] rounded-[2.5rem] bg-white/45 blur-3xl lg:block" />
+            <div className="relative grid items-start gap-6 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <div className="xl:translate-y-10">
+                <PhoneMockup
+                  title="Teklifleri karşılaştır"
+                  subtitle="Yerel hizmet verenlerle hızlı eşleş"
+                  image="/screens/request-feed.png"
+                  accent="bg-plum-500"
+                />
+              </div>
+              <div>
+                <PhoneMockup
+                  title="Hazır yemekleri keşfet"
+                  subtitle="Sipariş ve mesaj akışı tek yerde"
+                  image="/screens/food-card.jpg"
+                  accent="bg-aqua"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -121,7 +156,8 @@ export default function HomePage() {
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-plum-500">0{index + 1}</p>
                 <h3 className="mt-4 text-2xl font-black text-ink">{category}</h3>
                 <p className="mt-3 text-sm leading-6 text-slate-600">
-                  İhtiyacını paylaş, sana uygun hizmet verenlerle hızlıca bağlantı kur ve süreci tek yerden yönet.
+                  İhtiyacını paylaş, sana uygun hizmet verenlerle hızlıca bağlantı kur ve süreci
+                  tek yerden yönet.
                 </p>
               </div>
             ))}
@@ -189,9 +225,12 @@ export default function HomePage() {
           <p className="text-xs font-black uppercase tracking-[0.24em] text-sun">Hazırsan başlayalım</p>
           <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <h2 className="max-w-2xl text-4xl font-black">Ben Yaparım ile ihtiyacını doğru kişiyle bugün buluştur.</h2>
+              <h2 className="max-w-2xl text-4xl font-black">
+                Ben Yaparım ile ihtiyacını doğru kişiyle bugün buluştur.
+              </h2>
               <p className="mt-3 max-w-2xl text-base leading-7 text-white/75">
-                Android ve iPhone için indirme adımlarını, destek kanallarını ve tüm temel bilgi sayfalarını senin için hazırladık.
+                Android ve iPhone için indirme adımlarını, destek kanallarını ve tüm temel bilgi
+                sayfalarını senin için hazırladık.
               </p>
             </div>
             <Link

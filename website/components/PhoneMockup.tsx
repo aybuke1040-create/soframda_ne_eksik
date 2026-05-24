@@ -20,7 +20,13 @@ export function PhoneMockup({ title, subtitle, image, accent }: PhoneMockupProps
         </div>
 
         <div className="relative mt-4 min-h-0 flex-1 overflow-hidden rounded-[1.5rem] border border-slate-100 bg-slate-100">
-          <Image src={image} alt={title} width={420} height={746} className="h-full w-full object-cover object-top" />
+          <Image
+            src={image}
+            alt={title}
+            width={420}
+            height={746}
+            className="h-full w-full object-cover object-top"
+          />
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">

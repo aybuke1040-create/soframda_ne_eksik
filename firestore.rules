@@ -9,6 +9,18 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true ||
+        (
+          exists(/databases/$(database)/documents/app_config/moderation) &&
+          get(/databases/$(database)/documents/app_config/moderation).data.adminUserIds is list &&
+          request.auth.uid in get(/databases/$(database)/documents/app_config/moderation).data.adminUserIds
+        )
+      );
+    }
+
     function protectedUserFieldsUnchanged() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
         'credit',
@@ -97,6 +109,15 @@ service cloud.firestore {
       allow read: if isSignedIn() &&
         resource.data.receiverId == request.auth.uid;
       allow write: if false;
+    }
+
+    match /moderation_reports/{reportId} {
+      allow read: if isAdmin();
+      allow update: if isAdmin() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'reviewedAt', 'adminNote']) &&
+        request.resource.data.status in ['open', 'reviewed', 'resolved', 'dismissed'];
+      allow create, delete: if false;
     }
 
     match /chats/{chatId} {
