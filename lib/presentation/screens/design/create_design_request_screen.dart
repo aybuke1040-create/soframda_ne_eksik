@@ -11,6 +11,7 @@ import 'package:soframda_ne_eksik/core/utils/request_visibility_utils.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
+import 'package:soframda_ne_eksik/services/profile_completion_guard.dart';
 
 class CreateDesignRequestScreen extends StatefulWidget {
   final String? presetTitle;
@@ -134,13 +135,15 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
   }
 
   Future<String?> uploadImage() async {
-    if (imageFile == null) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (imageFile == null || user == null) {
       return null;
     }
 
     final ref = FirebaseStorage.instance
         .ref()
         .child('design_requests')
+        .child(user.uid)
         .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
 
     await ref.putFile(imageFile!);
@@ -166,6 +169,10 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
             'Topluluk kurallarina aykiri gorunen bir ifade tespit edildi. Lutfen metni duzeltip tekrar deneyin.',
         icon: Icons.report_gmailerrorred_rounded,
       );
+      return;
+    }
+
+    if (!await ProfileCompletionGuard.ensureDisplayNameReady(context)) {
       return;
     }
 

@@ -12,6 +12,7 @@ class AdminModerationScreen extends StatefulWidget {
 
 class _AdminModerationScreenState extends State<AdminModerationScreen> {
   String _statusFilter = 'open';
+  final Set<String> _locallyHiddenReportIds = <String>{};
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _reportsStream() {
     return FirebaseFirestore.instance
@@ -47,6 +48,12 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
         'reviewedAt': FieldValue.serverTimestamp(),
       });
 
+      if (mounted && _statusFilter != 'all' && status != _statusFilter) {
+        setState(() {
+          _locallyHiddenReportIds.add(reportId);
+        });
+      }
+
       if (!context.mounted) {
         return;
       }
@@ -78,6 +85,7 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
       onSelected: (_) {
         setState(() {
           _statusFilter = value;
+          _locallyHiddenReportIds.clear();
         });
       },
     );
@@ -239,6 +247,9 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
                 }
 
                 final docs = snapshot.data!.docs.where((doc) {
+                  if (_locallyHiddenReportIds.contains(doc.id)) {
+                    return false;
+                  }
                   if (_statusFilter == 'all') {
                     return true;
                   }

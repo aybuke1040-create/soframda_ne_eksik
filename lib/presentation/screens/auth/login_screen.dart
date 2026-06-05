@@ -15,6 +15,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _codeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FocusNode _phoneFocusNode = FocusNode();
+  final FocusNode _codeFocusNode = FocusNode();
+  final FocusNode _emailFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
 
   bool _loading = false;
   bool _codeSent = false;
@@ -29,6 +33,10 @@ class _LoginScreenState extends State<LoginScreen> {
     _codeController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _phoneFocusNode.dispose();
+    _codeFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -63,7 +71,28 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) {
       return;
     }
+
     ActionFeedbackService.showMessage(context, message: message);
+  }
+
+  void _switchAuthMode(bool useEmail) {
+    FocusManager.instance.primaryFocus?.unfocus();
+
+    setState(() {
+      _useEmailAuth = useEmail;
+      _codeSent = false;
+      _verificationId = '';
+      _codeController.clear();
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      final nextFocus = useEmail ? _emailFocusNode : _phoneFocusNode;
+      FocusScope.of(context).requestFocus(nextFocus);
+    });
   }
 
   Future<void> _emailAuth() async {
@@ -71,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final password = _passwordController.text;
 
     if (email.isEmpty || !email.contains('@')) {
-      _showMessage('Geçerli bir e-posta adresi girin.');
+      _showMessage('Geçerli bir e-posta adresi gir.');
       return;
     }
     if (password.length < 6) {
@@ -97,10 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _resetPassword() async {
+  Future<void> _resetPasswordWithGuidance() async {
     final email = _emailController.text.trim();
     if (email.isEmpty || !email.contains('@')) {
-      _showMessage('Şifre sıfırlama için geçerli e-posta adresini girin.');
+      _showMessage('Şifre sıfırlamak için geçerli bir e-posta adresi gir.');
       return;
     }
 
@@ -108,7 +137,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await _auth.sendPasswordResetEmail(email);
-      _showMessage('Şifre sıfırlama bağlantısı e-posta adresine gönderildi.');
+      _showMessage(
+        'Şifre sıfırlama bağlantısı gönderildi. Gelen kutunu ve '
+        'spam/junk klasörünü kontrol et.',
+      );
     } catch (error) {
       _showMessage(_auth.mapAuthError(error));
     } finally {
@@ -134,12 +166,21 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) {
           return;
         }
+
         setState(() {
           _verificationId = verificationId;
           _resendToken = resendToken ?? _resendToken;
           _codeSent = true;
           _loading = false;
         });
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) {
+            return;
+          }
+          FocusScope.of(context).requestFocus(_codeFocusNode);
+        });
+
         _showMessage('SMS doğrulama kodu gönderildi.');
       },
       onVerificationFailed: (message) {
@@ -162,7 +203,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _verifyCode() async {
     final smsCode = _codeController.text.trim();
     if (_verificationId.isEmpty || smsCode.length < 6) {
-      _showMessage('6 haneli SMS kodunu girin.');
+      _showMessage('6 haneli SMS kodunu gir.');
       return;
     }
 
@@ -387,28 +428,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 title: 'Telefon',
                 icon: Icons.phone_iphone_rounded,
                 selected: !_useEmailAuth,
-                onTap: () {
-                  setState(() {
-                    _useEmailAuth = false;
-                    _codeSent = false;
-                    _verificationId = '';
-                    _codeController.clear();
-                  });
-                },
+                onTap: () => _switchAuthMode(false),
               ),
               const SizedBox(width: 12),
               _buildModeChip(
                 title: 'E-posta',
                 icon: Icons.alternate_email_rounded,
                 selected: _useEmailAuth,
-                onTap: () {
-                  setState(() {
-                    _useEmailAuth = true;
-                    _codeSent = false;
-                    _verificationId = '';
-                    _codeController.clear();
-                  });
-                },
+                onTap: () => _switchAuthMode(true),
               ),
             ],
           ),
@@ -443,6 +470,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return [
       TextField(
         controller: _emailController,
+        focusNode: _emailFocusNode,
         keyboardType: TextInputType.emailAddress,
         decoration: _inputDecoration(
           label: 'E-posta adresi',
@@ -453,6 +481,7 @@ class _LoginScreenState extends State<LoginScreen> {
       const SizedBox(height: 12),
       TextField(
         controller: _passwordController,
+        focusNode: _passwordFocusNode,
         obscureText: true,
         decoration: _inputDecoration(
           label: 'Şifre',
@@ -470,7 +499,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: _loading ? null : _resetPassword,
+            onPressed: _loading ? null : _resetPasswordWithGuidance,
             child: const Text('Şifremi Unuttum'),
           ),
         ),
@@ -497,6 +526,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return [
         TextField(
           controller: _phoneController,
+          focusNode: _phoneFocusNode,
           keyboardType: TextInputType.phone,
           decoration: _inputDecoration(
             label: 'Telefon numarası',
@@ -513,7 +543,8 @@ class _LoginScreenState extends State<LoginScreen> {
             border: Border.all(color: const Color(0xFFF0DFC3)),
           ),
           child: const Text(
-            'Numaranı 5XXXXXXXXX ya da +905XXXXXXXXX formatında girebilirsin. SMS alamazsan e-posta seçeneğiyle devam edebilirsin.',
+            'Numaranı 5XXXXXXXXX ya da +905XXXXXXXXX formatında girebilirsin. '
+            'SMS alamazsan e-posta seçeneğiyle devam edebilirsin.',
             style: TextStyle(
               color: Color(0xFF7F6A57),
               height: 1.45,
@@ -531,6 +562,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return [
       TextField(
         controller: _codeController,
+        focusNode: _codeFocusNode,
         keyboardType: TextInputType.number,
         maxLength: 6,
         decoration: _inputDecoration(
@@ -554,10 +586,17 @@ class _LoginScreenState extends State<LoginScreen> {
         onPressed: _loading
             ? null
             : () {
+                FocusManager.instance.primaryFocus?.unfocus();
                 setState(() {
                   _codeSent = false;
                   _verificationId = '';
                   _codeController.clear();
+                });
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted) {
+                    return;
+                  }
+                  FocusScope.of(context).requestFocus(_phoneFocusNode);
                 });
               },
         child: const Text('Numarayı Değiştir'),

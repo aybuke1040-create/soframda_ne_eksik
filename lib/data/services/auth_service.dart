@@ -4,6 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService {
   AuthService();
 
+  static const String _passwordResetUrl =
+      'https://benyaparimci.com/reset-password';
+  static const String _appBundleId = 'com.benyaparim.app';
+  static const String _phoneFallbackMessage =
+      'Dilersen e-posta seçeneğiyle devam edebilir ya da destek için '
+      'benyaparimci@gmail.com adresine yazabilirsin.';
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
@@ -36,7 +43,18 @@ class AuthService {
   }
 
   Future<void> sendPasswordResetEmail(String email) async {
-    await _auth.sendPasswordResetEmail(email: email);
+    final actionCodeSettings = ActionCodeSettings(
+      url: '$_passwordResetUrl?email=${Uri.encodeComponent(email)}',
+      handleCodeInApp: false,
+      androidPackageName: _appBundleId,
+      androidInstallApp: false,
+      iOSBundleId: _appBundleId,
+    );
+
+    await _auth.sendPasswordResetEmail(
+      email: email,
+      actionCodeSettings: actionCodeSettings,
+    );
   }
 
   Future<void> sendPhoneVerification({
@@ -62,7 +80,8 @@ class AuthService {
           onVerificationFailed(mapAuthError(error));
         } catch (_) {
           onVerificationFailed(
-            'Telefon doğrulaması tamamlanamadı. Lütfen tekrar deneyin.',
+            'Telefon doğrulaması şu anda tamamlanamadı. '
+            '$_phoneFallbackMessage',
           );
         }
       },
@@ -169,22 +188,37 @@ class AuthService {
       if (message.contains('valid app identifier') ||
           message.contains('play integrity') ||
           message.contains('recaptcha')) {
-        return 'Telefon doğrulaması başlatılamadı. Firebase tarafında com.benyaparim.app için SHA-1 / SHA-256 ve Phone sağlayıcısı ayarlarını kontrol etmen gerekiyor.';
+        return 'Telefon doğrulaması bu cihazda başlatılamadı. '
+            '$_phoneFallbackMessage';
       }
 
       switch (error.code) {
         case 'invalid-phone-number':
-          return 'Telefon numarası geçersiz görünüyor.';
+          return 'Telefon numarası geçersiz görünüyor. '
+              'Numaranı kontrol edip tekrar deneyebilir ya da e-posta '
+              'seçeneğine geçebilirsin.';
         case 'too-many-requests':
-          return 'Çok fazla deneme yapıldı. Biraz sonra tekrar deneyin.';
+          return 'Kısa sürede çok fazla deneme yapıldı. Biraz sonra tekrar '
+              'deneyebilir ya da e-posta ile devam edebilirsin.';
         case 'invalid-verification-code':
-          return 'SMS doğrulama kodu hatalı.';
+          return 'SMS doğrulama kodu hatalı görünüyor. İstersen yeni kod '
+              'iste ya da e-posta seçeneğine geç.';
         case 'session-expired':
-          return 'Kodun süresi doldu. Lütfen yeni kod isteyin.';
+          return 'Kodun süresi dolmuş. Yeni kod isteyebilir ya da e-posta '
+              'seçeneğiyle devam edebilirsin.';
         case 'network-request-failed':
-          return 'İnternet bağlantısını kontrol edip tekrar deneyin.';
+          return 'İnternet bağlantını kontrol edip tekrar dene. Sorun '
+              'sürerse e-posta seçeneğini kullanabilirsin.';
         case 'app-not-authorized':
-          return 'Bu uygulama telefon doğrulaması için henüz yetkilendirilmemiş görünüyor.';
+        case 'captcha-check-failed':
+        case 'missing-client-identifier':
+        case 'missing-phone-number':
+          return 'Telefon doğrulaması şu anda kullanılamıyor. '
+              '$_phoneFallbackMessage';
+        case 'invalid-email':
+          return 'Geçerli bir e-posta adresi gir.';
+        case 'user-not-found':
+          return 'Bu e-posta ile eşleşen bir hesap bulunamadı.';
         default:
           return error.message ?? 'Giriş sırasında bir hata oluştu.';
       }

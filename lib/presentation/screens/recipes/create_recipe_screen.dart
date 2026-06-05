@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -54,6 +54,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
       final ref = FirebaseStorage.instance
           .ref()
           .child('recipes')
+          .child(FirebaseAuth.instance.currentUser!.uid)
           .child('$recipeId.jpg');
 
       await ref.putFile(_imageFile!);
@@ -236,6 +237,3 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     );
   }
 }
-
-
-

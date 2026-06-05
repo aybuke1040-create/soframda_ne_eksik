@@ -10,6 +10,7 @@ import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/delivery_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
+import 'package:soframda_ne_eksik/services/profile_completion_guard.dart';
 import 'package:soframda_ne_eksik/services/storage_service.dart';
 
 class CreateDeliveryRequestScreen extends StatefulWidget {
@@ -167,6 +168,10 @@ class _CreateDeliveryRequestScreenState
             'Topluluk kurallarina aykiri gorunen bir ifade tespit edildi. Lutfen metni duzeltip tekrar deneyin.',
         icon: Icons.report_gmailerrorred_rounded,
       );
+      return;
+    }
+
+    if (!await ProfileCompletionGuard.ensureDisplayNameReady(context)) {
       return;
     }
 

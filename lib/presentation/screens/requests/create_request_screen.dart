@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +12,7 @@ import 'package:soframda_ne_eksik/core/utils/request_visibility_utils.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/paywall_service.dart';
+import 'package:soframda_ne_eksik/services/profile_completion_guard.dart';
 
 class CreateRequestScreen extends StatefulWidget {
   final String? presetTitle;
@@ -98,7 +99,10 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
   Future<void> _loadRequest() async {
     setState(() => _isLoading = true);
     try {
-      final doc = await FirebaseFirestore.instance.collection('requests').doc(widget.requestId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('requests')
+          .doc(widget.requestId)
+          .get();
       final data = doc.data();
       if (data == null) return;
 
@@ -139,9 +143,16 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
       return;
     }
 
+    if (!await ProfileCompletionGuard.ensureDisplayNameReady(context)) {
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       final userData = userDoc.data() ?? <String, dynamic>{};
       final ownerName = ((userData['name'] as String?) ?? '').trim().isNotEmpty
           ? (userData['name'] as String).trim()
@@ -151,12 +162,18 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
       final geo = GeoFirePoint(GeoPoint(position.latitude, position.longitude));
 
       final requestRef = _isEditing
-          ? FirebaseFirestore.instance.collection('requests').doc(widget.requestId)
+          ? FirebaseFirestore.instance
+              .collection('requests')
+              .doc(widget.requestId)
           : FirebaseFirestore.instance.collection('requests').doc();
 
       String? imageUrl = _existingImageUrl;
       if (_imageFile != null) {
-        final storageRef = FirebaseStorage.instance.ref().child('requests').child('${requestRef.id}.jpg');
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('requests')
+            .child(user.uid)
+            .child('${requestRef.id}.jpg');
         await storageRef.putFile(_imageFile!);
         imageUrl = await storageRef.getDownloadURL();
       }
@@ -175,13 +192,17 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
         'location': geo.data,
         'type': widget.isReady ? 'ready_food' : 'food_request',
         'isReady': widget.isReady,
-        'price': widget.isReady ? int.tryParse(_priceController.text.trim()) : null,
-        'portion': widget.isReady ? int.tryParse(_portionController.text.trim()) : null,
+        'price':
+            widget.isReady ? int.tryParse(_priceController.text.trim()) : null,
+        'portion': widget.isReady
+            ? int.tryParse(_portionController.text.trim())
+            : null,
         'status': 'open',
       };
 
       if (_isEditing) {
-        await requestRef.update({...data, 'updatedAt': FieldValue.serverTimestamp()});
+        await requestRef
+            .update({...data, 'updatedAt': FieldValue.serverTimestamp()});
       } else {
         final success = await CreditService().performAction(
           userId: user.uid,
@@ -199,7 +220,8 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
           },
         );
         if (!success) {
-          throw Exception('İlan vermek için $_createRequestCreditCost kredi gerekiyor.');
+          throw Exception(
+              'İlan vermek için $_createRequestCreditCost kredi gerekiyor.');
         }
       }
 
@@ -220,7 +242,8 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
         PaywallService.showInsufficientCreditsSheet(
           context,
           title: 'İlan vermek için $_createRequestCreditCost kredi gerekiyor',
-          message: 'İlanını hemen yayınlamak için önce kredi satın alabilir, sonra kaldığın yerden devam edebilirsin.',
+          message:
+              'İlanını hemen yayınlamak için önce kredi satın alabilir, sonra kaldığın yerden devam edebilirsin.',
           buttonLabel: 'Kredi Satın Al',
           highlight: 'Sana uygun kredi paketleri',
         );
@@ -241,7 +264,9 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
   Widget build(BuildContext context) {
     final pageTitle = widget.isReady
         ? (_isEditing ? 'Hazır Yemeği Düzenle' : 'Hazır Yemek Ekle')
-        : (_isEditing ? 'Masamda Ne Eksik İlanını Düzenle' : 'Masamda Ne Eksik İlanı');
+        : (_isEditing
+            ? 'Masamda Ne Eksik İlanını Düzenle'
+            : 'Masamda Ne Eksik İlanı');
 
     return Scaffold(
       appBar: AppBar(title: Text(pageTitle)),
@@ -264,7 +289,10 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
                           labelText: 'Başlık',
                           hintText: 'Örn: 20 kişilik börek ve sarma istiyorum',
                         ),
-                        validator: (value) => value == null || value.trim().isEmpty ? 'Başlık gir' : null,
+                        validator: (value) =>
+                            value == null || value.trim().isEmpty
+                                ? 'Başlık gir'
+                                : null,
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -281,8 +309,12 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
                       TextFormField(
                         controller: _quantityController,
                         decoration: InputDecoration(
-                          labelText: widget.isReady ? 'Miktar' : 'Porsiyon / kişi / adet',
-                          hintText: widget.isReady ? 'Örn: 6 porsiyon' : 'Örn: 15 kişilik, 2 tepsi, 40 adet',
+                          labelText: widget.isReady
+                              ? 'Miktar'
+                              : 'Porsiyon / kişi / adet',
+                          hintText: widget.isReady
+                              ? 'Örn: 6 porsiyon'
+                              : 'Örn: 15 kişilik, 2 tepsi, 40 adet',
                         ),
                       ),
                       if (widget.isReady) ...[
@@ -296,7 +328,8 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
                         TextFormField(
                           controller: _portionController,
                           keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(labelText: 'Porsiyon'),
+                          decoration:
+                              const InputDecoration(labelText: 'Porsiyon'),
                         ),
                       ] else ...[
                         const SizedBox(height: 16),
@@ -305,7 +338,11 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
                       const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: saveRequest,
-                        child: Text(_isEditing ? 'Kaydet' : widget.isReady ? '10 Kredi ile Hazır Yemeği Yayınla' : '10 Kredi ile İlan Ver'),
+                        child: Text(_isEditing
+                            ? 'Kaydet'
+                            : widget.isReady
+                                ? '10 Kredi ile Hazır Yemeği Yayınla'
+                                : '10 Kredi ile İlan Ver'),
                       ),
                     ],
                   ),
@@ -326,9 +363,12 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('İlanını birkaç net cümleyle anlatman yeterli.', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+          Text('İlanını birkaç net cümleyle anlatman yeterli.',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           SizedBox(height: 8),
-          Text('İstediğin yemeği, miktarı ve sana uygun zamanı yazarsan ilgilenen kişiler sana daha rahat dönüş yapabilir.', style: TextStyle(height: 1.45)),
+          Text(
+              'İstediğin yemeği, miktarı ve sana uygun zamanı yazarsan ilgilenen kişiler sana daha rahat dönüş yapabilir.',
+              style: TextStyle(height: 1.45)),
         ],
       ),
     );
@@ -358,7 +398,9 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
       child: Container(
         height: 190,
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(20)),
+        decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(20)),
         child: imageChild,
       ),
     );
@@ -379,14 +421,20 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('İlan özeti', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          const Text('İlan özeti',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           const SizedBox(height: 10),
-          Text(title.isEmpty ? 'Başlık eklendiğinde burada görünecek.' : title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+          Text(title.isEmpty ? 'Başlık eklendiğinde burada görünecek.' : title,
+              style:
+                  const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
           const SizedBox(height: 6),
-          Text(quantity.isEmpty ? 'Miktar bilgisi henüz girilmedi.' : quantity, style: TextStyle(color: Colors.grey.shade700)),
+          Text(quantity.isEmpty ? 'Miktar bilgisi henüz girilmedi.' : quantity,
+              style: TextStyle(color: Colors.grey.shade700)),
           const SizedBox(height: 6),
           Text(
-            description.isEmpty ? 'Birkaç küçük detay eklemen ilanını daha anlaşılır hale getirir.' : description,
+            description.isEmpty
+                ? 'Birkaç küçük detay eklemen ilanını daha anlaşılır hale getirir.'
+                : description,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: Colors.grey.shade800, height: 1.4),

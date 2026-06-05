@@ -1,29 +1,49 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    match /requests/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    match /delivery_images/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+    function isImageUpload() {
+      return request.resource != null &&
+        request.resource.size < 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
     }
 
-    match /design_requests/{allPaths=**} {
+    match /requests/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn() &&
+        request.auth.uid == userId &&
+        isImageUpload();
     }
 
-    match /profile_photos/{allPaths=**} {
+    match /delivery_images/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn() &&
+        request.auth.uid == userId &&
+        isImageUpload();
     }
 
-    match /recipes/{allPaths=**} {
+    match /design_requests/{userId}/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn() &&
+        request.auth.uid == userId &&
+        isImageUpload();
+    }
+
+    match /profile_photos/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() &&
+        fileName == request.auth.uid + '.jpg' &&
+        isImageUpload();
+    }
+
+    match /recipes/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isSignedIn() &&
+        request.auth.uid == userId &&
+        isImageUpload();
     }
 
     match /{allPaths=**} {
