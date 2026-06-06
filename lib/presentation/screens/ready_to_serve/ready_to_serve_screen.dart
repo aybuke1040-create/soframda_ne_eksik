@@ -245,10 +245,7 @@ class _ReadyToServeScreenState extends State<ReadyToServeScreen> {
 
   Widget _buildReadyFoodGrid() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('requests')
-          .where('isReady', isEqualTo: true)
-          .snapshots(),
+      stream: FirebaseFirestore.instance.collection('requests').snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           final columns = _gridColumnCount(context);
@@ -272,6 +269,12 @@ class _ReadyToServeScreenState extends State<ReadyToServeScreen> {
         final items = docs
             .map((doc) {
               final data = doc.data() as Map<String, dynamic>;
+              final isReadyRequest =
+                  data['isReady'] == true || data['type'] == 'ready_food';
+
+              if (!isReadyRequest) {
+                return null;
+              }
 
               if (!isRequestVisibleForPublic(data)) {
                 return null;
