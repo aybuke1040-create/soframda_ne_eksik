@@ -20,6 +20,24 @@ class _ReadyToServeScreenState extends State<ReadyToServeScreen> {
   Position? userPosition;
   final Distance distance = const Distance();
 
+  LatLng? _requestLatLng(Map<String, dynamic> data) {
+    final latitude = data['latitude'];
+    final longitude = data['longitude'];
+    if (latitude is num && longitude is num) {
+      return LatLng(latitude.toDouble(), longitude.toDouble());
+    }
+
+    final location = data['location'];
+    if (location is Map<String, dynamic>) {
+      final geopoint = location['geopoint'];
+      if (geopoint is GeoPoint) {
+        return LatLng(geopoint.latitude, geopoint.longitude);
+      }
+    }
+
+    return null;
+  }
+
   bool _isTablet(BuildContext context) {
     return MediaQuery.of(context).size.shortestSide >= 600;
   }
@@ -259,13 +277,15 @@ class _ReadyToServeScreenState extends State<ReadyToServeScreen> {
                 return null;
               }
 
+              final requestLatLng = _requestLatLng(data);
+              if (requestLatLng == null) {
+                return null;
+              }
+
               final km = distance.as(
                 LengthUnit.Kilometer,
                 LatLng(userPosition!.latitude, userPosition!.longitude),
-                LatLng(
-                  (data['latitude'] ?? 0).toDouble(),
-                  (data['longitude'] ?? 0).toDouble(),
-                ),
+                requestLatLng,
               );
 
               return {
