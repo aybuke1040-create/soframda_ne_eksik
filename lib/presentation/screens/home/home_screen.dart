@@ -576,7 +576,7 @@ class _HomeScreenState extends State<HomeScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         isFeaturedMode
-            ? context.t('Ã–ne Ã‡Ä±kanlar', 'Featured')
+            ? context.t('Öne Çýkan Ýlanlar', 'Featured Listings')
             : context.t('YakÄ±ndaki Yemekler', 'Nearby Meals'),
         style: const TextStyle(
           fontSize: 18,
@@ -714,3 +714,4 @@ class ServiceCard extends StatelessWidget {
     );
   }
 }
+
