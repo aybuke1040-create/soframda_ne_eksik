@@ -14,6 +14,11 @@ class ChatService {
     final chatId = "${users[0]}_${users[1]}_$requestId";
 
     final chatRef = _db.collection('chats').doc(chatId);
+    final existingChat = await chatRef.get();
+
+    if (existingChat.exists) {
+      return chatId;
+    }
 
     await chatRef.set({
       'users': users,
