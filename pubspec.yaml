@@ -3,7 +3,7 @@ description: Soframda Ne Eksik App
 
 publish_to: "none"
 
-version: 1.0.42+50
+version: 1.0.42+51
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

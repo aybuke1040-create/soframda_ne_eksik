@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -166,8 +166,8 @@ class _HomeScreenState extends State<HomeScreen> {
     const appLink =
         'https://play.google.com/store/apps/details?id=com.benyaparim.app';
     const message =
-        'Ben YaparÄ±m 30 km Ã§evrendeki ilanlarÄ± ve yardÄ±mlaÅŸma taleplerini gÃ¶sterir. '
-        'BÃ¶lgemizde kullanÄ±cÄ± arttÄ±kÃ§a ilanlar daha hÄ±zlÄ± eÅŸleÅŸecek. Sen de katÄ±l: $appLink';
+        'Ben Yaparım 30 km çevrendeki ilanları ve yardımlaşma taleplerini gösterir. '
+        'Bölgemizde kullanıcı arttıkça ilanlar daha hızlı eşleşecek. Sen de katıl: $appLink';
 
     await Share.share(message);
 
@@ -182,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(
           content: Text(
             context.t(
-              'PaylaÅŸÄ±m Ã¶dÃ¼lÃ¼n hesabÄ±na eklendi.',
+              'Paylaşım ödülün hesabına eklendi.',
               'Your sharing reward has been added.',
             ),
           ),
@@ -193,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SnackBar(
           content: Text(
             context.t(
-              'Bu ayÄ±n paylaÅŸÄ±m Ã¶dÃ¼lÃ¼nÃ¼ zaten aldÄ±n.',
+              'Bu ayın paylaşım ödülünü zaten aldın.',
               'You already claimed this month\'s sharing reward.',
             ),
           ),
@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Text(
                     context.t(
-                      'BÃ¶lgende aÄŸ yeni kuruluyor',
+                      'Bölgende ağ yeni kuruluyor',
                       'Your local network is just starting',
                     ),
                     style: const TextStyle(
@@ -247,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 12),
             Text(
               context.t(
-                'Ä°lanlar 30 km Ã§evrende gÃ¶sterilir. Bu yÃ¼zden yakÄ±nÄ±nda henÃ¼z az kullanÄ±cÄ± varsa bir sÃ¼re daha az ilan gÃ¶rebilirsin. TanÄ±dÄ±klarÄ±nÄ± davet ettikÃ§e bÃ¶lgedeki ilan ve teklif sayÄ±sÄ± artar.',
+                'İlanlar 30 km çevrende gösterilir. Bu yüzden yakınında henüz az kullanıcı varsa bir süre daha az ilan görebilirsin. Tanıdıklarını davet ettikçe bölgedeki ilan ve teklif sayısı artar.',
                 'Listings are shown within 30 km. If there are only a few users near you, you may see fewer listings for now. As you invite people you know, listings and offers in your area grow.',
               ),
               style: const TextStyle(
@@ -263,7 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ElevatedButton.icon(
                   onPressed: _shareAppForLocalGrowth,
                   icon: const Icon(Icons.ios_share),
-                  label: Text(context.t('PaylaÅŸ', 'Share')),
+                  label: Text(context.t('Paylaş', 'Share')),
                 ),
                 OutlinedButton.icon(
                   onPressed: () {
@@ -275,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                   icon: const Icon(Icons.add),
-                  label: Text(context.t('Ä°lan AÃ§', 'Create Listing')),
+                  label: Text(context.t('İlan Aç', 'Create Listing')),
                 ),
               ],
             ),
@@ -353,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            context.t('Mahallenin Ortak MutfaÄŸÄ±',
+            context.t('Mahallenin Ortak Mutfağı',
                 'The Neighborhood Shared Kitchen'),
             style: const TextStyle(
               color: Colors.white,
@@ -363,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            context.t('BugÃ¼n ne istiyorsun?', 'What would you like today?'),
+            context.t('Bugün ne istiyorsun?', 'What would you like today?'),
             style: const TextStyle(
               color: Color.fromARGB(179, 104, 1, 1),
               fontSize: 18,
@@ -401,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ServiceCard(
-            title: context.t('Ben YaparÄ±m', 'I Can Make It'),
+            title: context.t('Ben Yaparım', 'I Can Make It'),
             icon: Icons.kitchen,
             onTap: () {
               Navigator.push(
@@ -413,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ServiceCard(
-            title: context.t('HazÄ±r Yemekler', 'Ready Meals'),
+            title: context.t('Hazır Yemekler', 'Ready Meals'),
             icon: Icons.restaurant,
             onTap: () {
               Navigator.push(
@@ -437,7 +437,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           ServiceCard(
-            title: context.t('Ben TaÅŸÄ±rÄ±m', 'I Can Deliver'),
+            title: context.t('Ben Taşırım', 'I Can Deliver'),
             icon: Icons.local_shipping,
             onTap: () {
               Navigator.push(
@@ -577,7 +577,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        context.t('Ã–NE Ã‡IKAN', 'FEATURED'),
+                        context.t('ÖNE ÇIKAN', 'FEATURED'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -600,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Text(
         isFeaturedMode
             ? context.t('Öne Çıkan İlanlar', 'Featured Listings')
-            : context.t('YakÄ±ndaki Yemekler', 'Nearby Meals'),
+            : context.t('Yakındaki Yemekler', 'Nearby Meals'),
         style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
@@ -621,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const Expanded(
                   child: Text(
-                    'TÃ¼m Aktif Ä°lanlar',
+                    'Tüm Aktif İlanlar',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -638,7 +638,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                   icon: const Icon(Icons.arrow_forward, size: 18),
-                  label: const Text('TÃ¼mÃ¼nÃ¼ GÃ¶r'),
+                  label: const Text('Tümünü Gör'),
                 ),
               ],
             ),
@@ -646,7 +646,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 2, 16, 6),
             child: Text(
-              'Mesafe ayrÄ±mÄ± olmadan yayÄ±ndaki aÃ§Ä±k ilanlarÄ± keÅŸfet.',
+              'Mesafe ayrımı olmadan yayındaki açık ilanları keşfet.',
               style: TextStyle(
                 color: Color(0xFF6E6253),
                 height: 1.35,
