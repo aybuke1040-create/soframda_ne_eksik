@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
+import 'package:soframda_ne_eksik/core/utils/date_format_utils.dart';
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/design/create_design_request_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.dart';
@@ -109,17 +110,17 @@ class DesignDetailScreen extends StatelessWidget {
     final shouldDelete = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: Text(context.t('İlan silinsin mi?', 'Delete listing?')),
+            title: Text(context.t('Ä°lan silinsin mi?', 'Delete listing?')),
             content: Text(
               context.t(
-                'Bu organizasyon ilanı tamamen silinecek.',
+                'Bu organizasyon ilanÄ± tamamen silinecek.',
                 'This event listing will be deleted permanently.',
               ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: Text(context.t('Vazgeç', 'Cancel')),
+                child: Text(context.t('VazgeÃ§', 'Cancel')),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
@@ -137,9 +138,9 @@ class DesignDetailScreen extends StatelessWidget {
     Navigator.pop(context);
     await ActionFeedbackService.show(
       context,
-      title: context.t('İlan silindi', 'Listing deleted'),
+      title: context.t('Ä°lan silindi', 'Listing deleted'),
       message: context.t(
-        'Organizasyon ilanın ve ilişkili kayıtlar kaldırıldı.',
+        'Organizasyon ilanÄ±n ve iliÅŸkili kayÄ±tlar kaldÄ±rÄ±ldÄ±.',
         'Your event listing and related records were removed.',
       ),
       icon: Icons.delete_outline_rounded,
@@ -153,11 +154,11 @@ class DesignDetailScreen extends StatelessWidget {
     if (currentCredits < 50) {
       PaywallService.showInsufficientCreditsSheet(
         context,
-        title: 'Öne çıkarmak için 50 kredi gerekiyor',
+        title: 'Ã–ne Ã§Ä±karmak iÃ§in 50 kredi gerekiyor',
         message:
-            'Organizasyon ilanını daha fazla kişiye göstermek için kredi satın alıp hemen öne çıkarabilirsin.',
-        buttonLabel: 'Kredi Satın Al',
-        highlight: 'Öne çıkarma için kredi paketleri',
+            'Organizasyon ilanÄ±nÄ± daha fazla kiÅŸiye gÃ¶stermek iÃ§in kredi satÄ±n alÄ±p hemen Ã¶ne Ã§Ä±karabilirsin.',
+        buttonLabel: 'Kredi SatÄ±n Al',
+        highlight: 'Ã–ne Ã§Ä±karma iÃ§in kredi paketleri',
       );
       return;
     }
@@ -168,11 +169,11 @@ class DesignDetailScreen extends StatelessWidget {
     if (result == FeatureRequestStatus.insufficientCredit) {
       PaywallService.showInsufficientCreditsSheet(
         context,
-        title: 'Öne çıkarmak için 50 kredi gerekiyor',
+        title: 'Ã–ne Ã§Ä±karmak iÃ§in 50 kredi gerekiyor',
         message:
-            'Organizasyon ilanını daha fazla kişiye göstermek için kredi satın alıp hemen öne çıkarabilirsin.',
-        buttonLabel: 'Kredi Satın Al',
-        highlight: 'Öne çıkarma için kredi paketleri',
+            'Organizasyon ilanÄ±nÄ± daha fazla kiÅŸiye gÃ¶stermek iÃ§in kredi satÄ±n alÄ±p hemen Ã¶ne Ã§Ä±karabilirsin.',
+        buttonLabel: 'Kredi SatÄ±n Al',
+        highlight: 'Ã–ne Ã§Ä±karma iÃ§in kredi paketleri',
       );
       return;
     }
@@ -180,24 +181,24 @@ class DesignDetailScreen extends StatelessWidget {
     await ActionFeedbackService.show(
       context,
       title: result == FeatureRequestStatus.success
-          ? context.t('İlan öne çıkarıldı', 'Listing featured')
+          ? context.t('Ä°lan Ã¶ne Ã§Ä±karÄ±ldÄ±', 'Listing featured')
           : result == FeatureRequestStatus.alreadyFeatured
-              ? context.t('Bu ilan zaten öne çıkarılmış',
+              ? context.t('Bu ilan zaten Ã¶ne Ã§Ä±karÄ±lmÄ±ÅŸ',
                   'This listing is already featured')
-              : context.t('Öne çıkarma tamamlanamadı',
+              : context.t('Ã–ne Ã§Ä±karma tamamlanamadÄ±',
                   'Featuring could not be completed'),
       message: result == FeatureRequestStatus.success
           ? context.t(
-              'İlanın daha görünür hale getirildi. Birkaç gün boyunca üst sıralarda gösterilecek.',
+              'Ä°lanÄ±n daha gÃ¶rÃ¼nÃ¼r hale getirildi. BirkaÃ§ gÃ¼n boyunca Ã¼st sÄ±ralarda gÃ¶sterilecek.',
               'Your listing is now more visible and will appear higher for a few days.',
             )
           : result == FeatureRequestStatus.alreadyFeatured
               ? context.t(
-                  'Bu ilan zaten öne çıkarılmış durumda. Ekstra bir işlem yapmana gerek yok.',
+                  'Bu ilan zaten Ã¶ne Ã§Ä±karÄ±lmÄ±ÅŸ durumda. Ekstra bir iÅŸlem yapmana gerek yok.',
                   'This listing is already featured. No extra action is needed.',
                 )
               : context.t(
-                  'Şu anda öne çıkarma işlemi tamamlanamadı. Kısa süre sonra tekrar deneyebilirsin.',
+                  'Åu anda Ã¶ne Ã§Ä±karma iÅŸlemi tamamlanamadÄ±. KÄ±sa sÃ¼re sonra tekrar deneyebilirsin.',
                   'Featuring could not be completed right now. You can try again shortly.',
                 ),
       icon: result == FeatureRequestStatus.success
@@ -212,9 +213,9 @@ class DesignDetailScreen extends StatelessWidget {
     if (ownerId.trim().isEmpty) {
       await ActionFeedbackService.show(
         context,
-        title: context.t('İlan sahibine ulaşılamadı', 'Owner unavailable'),
+        title: context.t('Ä°lan sahibine ulaÅŸÄ±lamadÄ±', 'Owner unavailable'),
         message: context.t(
-          'İlan sahibine ulaşılamadı.',
+          'Ä°lan sahibine ulaÅŸÄ±lamadÄ±.',
           'The listing owner could not be reached.',
         ),
         icon: Icons.error_outline_rounded,
@@ -237,9 +238,9 @@ class DesignDetailScreen extends StatelessWidget {
       if (!context.mounted) return;
       await ActionFeedbackService.show(
         context,
-        title: context.t('Sohbet açılamadı', 'Chat could not be opened'),
+        title: context.t('Sohbet aÃ§Ä±lamadÄ±', 'Chat could not be opened'),
         message: context.t(
-          'Sohbet açılamadı: $e',
+          'Sohbet aÃ§Ä±lamadÄ±: $e',
           'Chat could not be opened: $e',
         ),
         icon: Icons.error_outline_rounded,
@@ -269,10 +270,11 @@ class DesignDetailScreen extends StatelessWidget {
         if (!snapshot.data!.exists) {
           return Scaffold(
             appBar: AppBar(
-                title: Text(context.t('Organizasyon İlanı', 'Event Listing'))),
+                title:
+                    Text(context.t('Organizasyon Ä°lanÄ±', 'Event Listing'))),
             body: Center(
-                child:
-                    Text(context.t('İlan bulunamadı.', 'Listing not found.'))),
+                child: Text(
+                    context.t('Ä°lan bulunamadÄ±.', 'Listing not found.'))),
           );
         }
 
@@ -280,6 +282,7 @@ class DesignDetailScreen extends StatelessWidget {
         final ownerId = data['ownerId'] as String? ?? '';
         final isOwner = ownerId == currentUserId;
         final imageUrl = data['imageUrl'] as String? ?? '';
+        final publishedDate = formatPublishedDate(data['createdAt']);
         final isFeatured = data['isFeatured'] == true;
         final featuredUntil = data['featuredUntil'] as Timestamp?;
         final isFeatureActive = isFeatured &&
@@ -288,7 +291,7 @@ class DesignDetailScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(context.t('Organizasyon İlanı', 'Event Listing')),
+            title: Text(context.t('Organizasyon Ä°lanÄ±', 'Event Listing')),
             actions: [
               if (!isOwner)
                 PopupMenuButton<String>(
@@ -342,9 +345,11 @@ class DesignDetailScreen extends StatelessWidget {
                               fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 10),
-                        Text('${data['guestCount'] ?? 0} kişi'),
+                        Text('${data['guestCount'] ?? 0} kiÅŸi'),
                         Text('${data['location'] ?? '-'}'),
                         Text('${data['date'] ?? '-'}'),
+                        if (publishedDate != null)
+                          Text('Yayın tarihi: $publishedDate'),
                         const SizedBox(height: 10),
                         Text(data['description'] ?? ''),
                         const SizedBox(height: 18),
@@ -366,7 +371,7 @@ class DesignDetailScreen extends StatelessWidget {
                             ),
                             child: Text(
                               context.t(
-                                'Soruların varsa mesaj at, ben yaparım diyorsan hemen teklif ver.',
+                                'SorularÄ±n varsa mesaj at, ben yaparÄ±m diyorsan hemen teklif ver.',
                                 'If you have questions, send a message. If you can do it, send an offer right away.',
                               ),
                               style: const TextStyle(
@@ -384,7 +389,8 @@ class DesignDetailScreen extends StatelessWidget {
                           runSpacing: 12,
                           children: isOwner
                               ? [
-                                  _btn(context.t('Düzenle', 'Edit'), onTap: () {
+                                  _btn(context.t('DÃ¼zenle', 'Edit'),
+                                      onTap: () {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -394,18 +400,21 @@ class DesignDetailScreen extends StatelessWidget {
                                       ),
                                     );
                                   }),
-                                  _btn(context.t('İlanı Sil', 'Delete Listing'),
+                                  _btn(
+                                      context.t(
+                                          'Ä°lanÄ± Sil', 'Delete Listing'),
                                       onTap: () {
                                     _deleteRequest(context);
                                   }),
-                                  _btn(context.t('Öne Çıkar', 'Feature'),
+                                  _btn(context.t('Ã–ne Ã‡Ä±kar', 'Feature'),
                                       onTap: () async {
                                     if (isFeatureActive) {
                                       await ActionFeedbackService.show(
                                         context,
-                                        title: 'Bu ilan zaten öne çıkarılmış',
+                                        title:
+                                            'Bu ilan zaten Ã¶ne Ã§Ä±karÄ±lmÄ±ÅŸ',
                                         message:
-                                            'Bu ilan zaten öne çıkarılmış durumda. Ekstra bir işlem yapmana gerek yok.',
+                                            'Bu ilan zaten Ã¶ne Ã§Ä±karÄ±lmÄ±ÅŸ durumda. Ekstra bir iÅŸlem yapmana gerek yok.',
                                         icon: Icons.verified_rounded,
                                       );
                                       return;
@@ -416,7 +425,7 @@ class DesignDetailScreen extends StatelessWidget {
                               : [
                                   _btn(
                                     context.t(
-                                      'Mesaj Gönder\n(İlk mesaj 10 kredi)',
+                                      'Mesaj GÃ¶nder\n(Ä°lk mesaj 10 kredi)',
                                       'Send Message\n(First message 10 credits)',
                                     ),
                                     onTap: () => _openChat(context, ownerId),
@@ -435,9 +444,9 @@ class DesignDetailScreen extends StatelessWidget {
                                             .showInsufficientCreditsSheet(
                                           context,
                                           title:
-                                              'Teklif vermek için 10 kredi gerekiyor',
+                                              'Teklif vermek iÃ§in 10 kredi gerekiyor',
                                           message:
-                                              'Teklifini hemen gönderebilmek için önce kredi satın alabilir, sonra tek dokunuşla devam edebilirsin.',
+                                              'Teklifini hemen gÃ¶nderebilmek iÃ§in Ã¶nce kredi satÄ±n alabilir, sonra tek dokunuÅŸla devam edebilirsin.',
                                           highlight: 'Teklif kredi paketleri',
                                         );
                                         return;
@@ -497,7 +506,7 @@ class DesignDetailScreen extends StatelessWidget {
 
                               if (offers.isEmpty) {
                                 return Text(context.t(
-                                    'Henüz teklif yok.', 'No offers yet.'));
+                                    'HenÃ¼z teklif yok.', 'No offers yet.'));
                               }
 
                               return Column(
@@ -519,9 +528,9 @@ class DesignDetailScreen extends StatelessWidget {
                                         if (senderId.isEmpty) {
                                           await ActionFeedbackService.show(
                                             context,
-                                            title: 'Teklif sahibi bulunamadı',
+                                            title: 'Teklif sahibi bulunamadÄ±',
                                             message:
-                                                'Teklif sahibine ulaşılamadı.',
+                                                'Teklif sahibine ulaÅŸÄ±lamadÄ±.',
                                             icon: Icons.error_outline_rounded,
                                           );
                                           return;
@@ -546,7 +555,7 @@ class DesignDetailScreen extends StatelessWidget {
                                           ),
                                         );
                                       },
-                                      child: const Text('Teklifi İncele'),
+                                      child: const Text('Teklifi Ä°ncele'),
                                     ),
                                   );
                                 }).toList(),

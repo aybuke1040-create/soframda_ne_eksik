@@ -1,9 +1,10 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:soframda_ne_eksik/core/utils/date_format_utils.dart';
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/profile_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/requests/create_request_screen.dart';
@@ -33,7 +34,8 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
   String? get _currentUserId => FirebaseAuth.instance.currentUser?.uid;
 
   Future<Map<String, dynamic>?> _getUser(String uid) async {
-    final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
     return doc.data();
   }
 
@@ -189,7 +191,8 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
     await ActionFeedbackService.show(
       context,
       title: 'Sikayet alindi',
-      message: 'Bildirim alindi. Moderasyon ekibimiz en gec 24 saat icinde inceleyecek.',
+      message:
+          'Bildirim alindi. Moderasyon ekibimiz en gec 24 saat icinde inceleyecek.',
       icon: Icons.flag_outlined,
     );
   }
@@ -208,7 +211,8 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
     await ActionFeedbackService.show(
       context,
       title: 'Kullanici engellendi',
-      message: 'Bu kullanicinin ilanlari ve iletisimleri artik sana gosterilmeyecek.',
+      message:
+          'Bu kullanicinin ilanlari ve iletisimleri artik sana gosterilmeyecek.',
       icon: Icons.block_outlined,
     );
     if (mounted) Navigator.pop(context);
@@ -280,11 +284,13 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
       );
 
       unawaited(
-        _chatService.sendMessage(
-          chatId: chatId,
-          text: 'Sipariş vermek istiyorum.',
-          senderId: currentUserId,
-        ).catchError((_) {}),
+        _chatService
+            .sendMessage(
+              chatId: chatId,
+              text: 'Sipariş vermek istiyorum.',
+              senderId: currentUserId,
+            )
+            .catchError((_) {}),
       );
     } catch (e) {
       if (!mounted) return;
@@ -387,6 +393,7 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
           final description = (data['description'] ?? '').toString();
           final imageUrl = (data['imageUrl'] ?? '').toString();
           final ownerName = (data['ownerName'] ?? 'Kullanıcı').toString();
+          final publishedDate = formatPublishedDate(data['createdAt']);
           final price = (data['price'] ?? '').toString();
           final portion = (data['portion'] ?? '').toString();
           final isOwner = ownerId.isNotEmpty && ownerId == _currentUserId;
@@ -429,7 +436,8 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                       : Container(
                           color: const Color(0xFFF6EDE1),
                           child: const Center(
-                            child: Icon(Icons.fastfood, size: 72, color: Color(0xFFB97328)),
+                            child: Icon(Icons.fastfood,
+                                size: 72, color: Color(0xFFB97328)),
                           ),
                         ),
                 ),
@@ -454,9 +462,11 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                           ),
                           if (isFeatureActive)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFB97328).withOpacity(0.12),
+                                color:
+                                    const Color(0xFFB97328).withOpacity(0.12),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                               child: const Text(
@@ -472,16 +482,27 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                       const SizedBox(height: 12),
                       _infoRow(Icons.person_outline, 'İlan sahibi', ownerName),
                       const SizedBox(height: 8),
+                      if (publishedDate != null) ...[
+                        _infoRow(
+                          Icons.calendar_today_outlined,
+                          'Yayın tarihi',
+                          publishedDate,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                       if (price.isNotEmpty) ...[
                         _infoRow(Icons.payments_outlined, 'Fiyat', '$price TL'),
                         const SizedBox(height: 8),
                       ],
                       if (portion.isNotEmpty) ...[
-                        _infoRow(Icons.restaurant_outlined, 'Porsiyon', portion),
+                        _infoRow(
+                            Icons.restaurant_outlined, 'Porsiyon', portion),
                         const SizedBox(height: 8),
                       ],
                       FutureBuilder<Map<String, dynamic>?>(
-                        future: ownerId.isEmpty ? Future.value(null) : _getUser(ownerId),
+                        future: ownerId.isEmpty
+                            ? Future.value(null)
+                            : _getUser(ownerId),
                         builder: (context, userSnapshot) {
                           final userData = userSnapshot.data ?? {};
                           final bio = (userData['bio'] ?? '').toString().trim();
@@ -494,21 +515,25 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFF8F3EA),
                               borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: const Color(0xFFEADBC4)),
+                              border:
+                                  Border.all(color: const Color(0xFFEADBC4)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Text(
                                   'İlan sahibi',
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w800),
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   hasBio
                                       ? bio
                                       : 'İlan sahibi burada henüz detay eklememiş.',
-                                  style: const TextStyle(fontSize: 14, height: 1.45),
+                                  style: const TextStyle(
+                                      fontSize: 14, height: 1.45),
                                 ),
                                 const SizedBox(height: 12),
                                 Align(
@@ -520,7 +545,9 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                                             Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (_) => UserProfileScreen(userId: ownerId),
+                                                builder: (_) =>
+                                                    UserProfileScreen(
+                                                        userId: ownerId),
                                               ),
                                             );
                                           },
@@ -536,7 +563,8 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                       if (description.isNotEmpty) ...[
                         const Text(
                           'Açıklama',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -547,7 +575,8 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                       ],
                       const Text(
                         'Aksiyonlar',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700),
                       ),
                       if (!isOwner) ...[
                         const SizedBox(height: 8),
@@ -628,7 +657,9 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                                   icon: Icons.chat_bubble_outline,
                                   title: 'Mesaj Gönder\n(İlk mesaj 10 kredi)',
                                   color: const Color(0xFF5B7BE3),
-                                  onTap: ownerId.isEmpty ? null : () => _openChat(ownerId),
+                                  onTap: ownerId.isEmpty
+                                      ? null
+                                      : () => _openChat(ownerId),
                                 ),
                                 _actionCard(
                                   icon: Icons.shopping_bag_outlined,

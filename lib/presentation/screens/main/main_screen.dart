@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
@@ -148,7 +148,7 @@ class _MainScreenState extends State<MainScreen> {
                         : constraints.maxWidth;
                 final isLandscapeCompact =
                     constraints.maxWidth > constraints.maxHeight &&
-                    constraints.maxHeight < 520;
+                        constraints.maxHeight < 520;
                 final pageHeight = isLandscapeCompact ? 300.0 : 420.0;
                 final titleSize = isLandscapeCompact ? 26.0 : 34.0;
                 final descSize = isLandscapeCompact ? 16.5 : 19.0;
@@ -162,7 +162,8 @@ class _MainScreenState extends State<MainScreen> {
                       maxHeight: constraints.maxHeight - 32,
                     ),
                     child: Dialog(
-                      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      insetPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(28),
                       ),
@@ -174,7 +175,8 @@ class _MainScreenState extends State<MainScreen> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: () => Navigator.of(dialogContext).pop(),
+                                onPressed: () =>
+                                    Navigator.of(dialogContext).pop(),
                                 child: Text(context.t('Turu Geç', 'Skip Tour')),
                               ),
                             ),
@@ -198,14 +200,17 @@ class _MainScreenState extends State<MainScreen> {
                                           minHeight: pageHeight,
                                         ),
                                         child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Container(
                                               width: iconBox,
                                               height: iconBox,
                                               decoration: BoxDecoration(
-                                                color: page.accent.withOpacity(0.14),
-                                                borderRadius: BorderRadius.circular(24),
+                                                color: page.accent
+                                                    .withOpacity(0.14),
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
                                               ),
                                               child: Icon(
                                                 page.icon,
@@ -213,7 +218,10 @@ class _MainScreenState extends State<MainScreen> {
                                                 color: page.accent,
                                               ),
                                             ),
-                                            SizedBox(height: isLandscapeCompact ? 16 : 22),
+                                            SizedBox(
+                                                height: isLandscapeCompact
+                                                    ? 16
+                                                    : 22),
                                             Text(
                                               page.title,
                                               textAlign: TextAlign.center,
@@ -226,14 +234,17 @@ class _MainScreenState extends State<MainScreen> {
                                             ),
                                             const SizedBox(height: 14),
                                             Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8),
                                               child: Text(
                                                 page.description,
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   fontSize: descSize,
                                                   height: 1.65,
-                                                  color: const Color(0xFF5D5347),
+                                                  color:
+                                                      const Color(0xFF5D5347),
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
@@ -253,7 +264,8 @@ class _MainScreenState extends State<MainScreen> {
                                 pages.length,
                                 (index) => AnimatedContainer(
                                   duration: const Duration(milliseconds: 180),
-                                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 4),
                                   width: pageIndex == index ? 24 : 8,
                                   height: 8,
                                   decoration: BoxDecoration(
@@ -271,7 +283,8 @@ class _MainScreenState extends State<MainScreen> {
                                 Expanded(
                                   child: OutlinedButton(
                                     onPressed: () async {
-                                      final user = FirebaseAuth.instance.currentUser;
+                                      final user =
+                                          FirebaseAuth.instance.currentUser;
                                       if (user != null) {
                                         await FirebaseFirestore.instance
                                             .collection('users')
@@ -286,7 +299,8 @@ class _MainScreenState extends State<MainScreen> {
                                       }
                                     },
                                     child: Text(
-                                      context.t('Bir Daha Gösterme', 'Do Not Show Again'),
+                                      context.t('Bir Daha Gösterme',
+                                          'Do Not Show Again'),
                                     ),
                                   ),
                                 ),
@@ -300,7 +314,8 @@ class _MainScreenState extends State<MainScreen> {
                                       }
 
                                       controller.nextPage(
-                                        duration: const Duration(milliseconds: 220),
+                                        duration:
+                                            const Duration(milliseconds: 220),
                                         curve: Curves.easeOut,
                                       );
                                     },

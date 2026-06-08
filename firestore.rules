@@ -44,6 +44,20 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid in chatData.users;
     }
 
+    function protectedRequestFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'ownerId',
+        'acceptedOfferId',
+        'acceptedUserId',
+        'ownerCompleted',
+        'workerCompleted',
+        'completedProcessed',
+        'reviewByOwner',
+        'reviewByWorker',
+        'createdAt',
+      ]);
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSelf(userId) &&
@@ -93,14 +107,7 @@ service cloud.firestore {
         request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() &&
         resource.data.ownerId == request.auth.uid &&
-        request.resource.data.ownerId == resource.data.ownerId &&
-        request.resource.data.acceptedOfferId == resource.data.acceptedOfferId &&
-        request.resource.data.acceptedUserId == resource.data.acceptedUserId &&
-        request.resource.data.ownerCompleted == resource.data.ownerCompleted &&
-        request.resource.data.workerCompleted == resource.data.workerCompleted &&
-        request.resource.data.completedProcessed == resource.data.completedProcessed &&
-        request.resource.data.reviewByOwner == resource.data.reviewByOwner &&
-        request.resource.data.reviewByWorker == resource.data.reviewByWorker;
+        protectedRequestFieldsUnchanged();
 
       match /orders/{orderId} {
         allow read: if isSignedIn() && (
@@ -139,6 +146,11 @@ service cloud.firestore {
           .hasOnly(['status', 'reviewedAt', 'adminNote']) &&
         request.resource.data.status in ['open', 'reviewed', 'resolved', 'dismissed'];
       allow create, delete: if false;
+    }
+
+    match /app_config/client {
+      allow read: if true;
+      allow write: if false;
     }
 
     match /chats/{chatId} {
