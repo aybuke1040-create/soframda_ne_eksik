@@ -69,12 +69,12 @@ class MySentOffersScreen extends StatelessWidget {
           builder: (dialogContext) => AlertDialog(
             title: const Text('Teklif silinsin mi?'),
             content: const Text(
-              'Bu bekleyen teklif kaldirilacak. Bu islem geri alinamaz.',
+              'Bu bekleyen teklif kaldırılacak. Bu işlem geri alınamaz.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Vazgec'),
+                child: const Text('Vazgeç'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
@@ -137,7 +137,7 @@ class MySentOffersScreen extends StatelessWidget {
 
             if (docs.isEmpty) {
               return const Center(
-                child: Text('Henuz gonderdigin teklif yok.'),
+                child: Text('Henüz gönderdiğin teklif yok.'),
               );
             }
 
@@ -149,7 +149,7 @@ class MySentOffersScreen extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'Teklifler su anda yuklenemedi.',
+                        'Teklifler şu anda yüklenemedi.',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -167,7 +167,7 @@ class MySentOffersScreen extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'Gosterilebilecek teklif bulunamadi.',
+                        'Gösterilebilecek teklif bulunamadı.',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -205,7 +205,7 @@ class MySentOffersScreen extends StatelessWidget {
                         contentPadding: const EdgeInsets.all(14),
                         title: Text(
                           title == null || title.isEmpty
-                              ? 'Ilan bilgisi bulunamadi'
+                              ? 'İlan bilgisi bulunamadı'
                               : title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -272,7 +272,7 @@ class MySentOffersScreen extends StatelessWidget {
 
   static String _requestSubtitle(Map<String, dynamic>? requestData) {
     if (requestData == null) {
-      return 'Ilana ait detaylar yuklenemedi.';
+      return 'İlana ait detaylar yüklenemedi.';
     }
 
     final pickup = (requestData['pickupAddress'] as String?)?.trim();
@@ -281,7 +281,7 @@ class MySentOffersScreen extends StatelessWidget {
     final category = (requestData['category'] as String?)?.trim();
 
     if (pickup != null && pickup.isNotEmpty && drop != null && drop.isNotEmpty) {
-      return 'Alis: $pickup • Birak: $drop';
+      return 'Alış: $pickup • Bırak: $drop';
     }
 
     if (quantity != null && quantity.isNotEmpty) {
@@ -292,7 +292,7 @@ class MySentOffersScreen extends StatelessWidget {
       return category;
     }
 
-    return 'Teklif verdigin ilan.';
+    return 'Teklif verdiğin ilan.';
   }
 
   static String _statusLabel(String status) {

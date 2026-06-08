@@ -74,7 +74,7 @@ class OfferInboxScreen extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.all(24),
                   child: Text(
-                    'Teklifler su anda yuklenemedi.',
+                    'Teklifler şu anda yüklenemedi.',
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -100,7 +100,7 @@ class OfferInboxScreen extends StatelessWidget {
 
             if (offers.isEmpty) {
               return const Center(
-                child: Text('Henuz aldigin teklif yok.'),
+                child: Text('Henüz aldığın teklif yok.'),
               );
             }
 
@@ -116,7 +116,7 @@ class OfferInboxScreen extends StatelessWidget {
 
             if (grouped.isEmpty) {
               return const Center(
-                child: Text('Gosterilebilecek teklif bulunamadi.'),
+                child: Text('Gösterilebilecek teklif bulunamadı.'),
               );
             }
 
@@ -130,7 +130,7 @@ class OfferInboxScreen extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'Teklifler su anda yuklenemedi.',
+                        'Teklifler şu anda yüklenemedi.',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -148,7 +148,7 @@ class OfferInboxScreen extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'Gosterilebilecek teklif bulunamadi.',
+                        'Gösterilebilecek teklif bulunamadı.',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -187,7 +187,7 @@ class OfferInboxScreen extends StatelessWidget {
                             const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         title: Text(
                           title == null || title.isEmpty
-                              ? 'Ilan bilgisi bulunamadi'
+                              ? 'İlan bilgisi bulunamadı'
                               : title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -233,14 +233,14 @@ class OfferInboxScreen extends StatelessWidget {
                                     ),
                                   ),
                                   child: const Text(
-                                    'Teklif sahibi bilgisi yuklenemedi.',
+                                    'Teklif sahibi bilgisi yüklenemedi.',
                                   ),
                                 );
                               }
 
                               final userData = userSnapshot.data?.data();
                               final senderName = senderId.isEmpty
-                                  ? 'Teklif sahibi bulunamadi'
+                                  ? 'Teklif sahibi bulunamadı'
                                   : (userData?['name'] as String?)?.trim() ??
                                       'Teklif sahibi';
 
