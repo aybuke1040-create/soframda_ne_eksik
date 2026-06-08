@@ -21,8 +21,6 @@ const List<String> kObjectionableTerms = [
   'ibne',
   'siktir',
   'amk',
-  'aq',
-  'mk',
   'serefsiz',
   '\u015ferefsiz',
   'hakaret',
@@ -39,6 +37,16 @@ String _normalizeForModeration(String input) {
       .replaceAll('\u00fc', 'u');
 }
 
+final List<RegExp> _objectionablePatterns = kObjectionableTerms
+    .map(_normalizeForModeration)
+    .map(_buildModerationPattern)
+    .toList(growable: false);
+
+RegExp _buildModerationPattern(String normalizedTerm) {
+  final escaped = RegExp.escape(normalizedTerm).replaceAll(r'\ ', r'\s+');
+  return RegExp('(^|[^a-z0-9])$escaped([^a-z0-9]|\$)');
+}
+
 ModerationIssue? findObjectionableContent(Map<String, String> fields) {
   for (final entry in fields.entries) {
     final normalizedValue = _normalizeForModeration(entry.value);
@@ -46,11 +54,11 @@ ModerationIssue? findObjectionableContent(Map<String, String> fields) {
       continue;
     }
 
-    for (final term in kObjectionableTerms) {
-      if (normalizedValue.contains(_normalizeForModeration(term))) {
+    for (var i = 0; i < kObjectionableTerms.length; i++) {
+      if (_objectionablePatterns[i].hasMatch(normalizedValue)) {
         return ModerationIssue(
           fieldLabel: entry.key,
-          matchedTerm: term,
+          matchedTerm: kObjectionableTerms[i],
         );
       }
     }

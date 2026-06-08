@@ -89,9 +89,9 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
     if (moderationIssue != null) {
       await ActionFeedbackService.show(
         context,
-        title: 'Icerik gonderilemedi',
+        title: 'İçerik gönderilemedi',
         message:
-            'Topluluk kurallarina aykiri gorunen bir ifade tespit edildi. Lutfen tarifi duzeltip tekrar deneyin.',
+            'Tarif metninde topluluk kurallarına takılabilecek bir ifade görünüyor. Lütfen metni gözden geçirip tekrar deneyin.',
         icon: Icons.report_gmailerrorred_rounded,
       );
       return;
