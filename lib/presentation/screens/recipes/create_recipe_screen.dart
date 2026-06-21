@@ -108,7 +108,7 @@ class _CreateRecipeScreenState extends State<CreateRecipeScreen> {
           .get();
       final userData = userDoc.data() ?? <String, dynamic>{};
       final rawOwnerName = (userData['name'] as String? ?? '').trim();
-      final ownerName = rawOwnerName.isNotEmpty ? rawOwnerName : 'Kullanici';
+      final ownerName = rawOwnerName.isNotEmpty ? rawOwnerName : 'Kullanıcı';
 
       final recipeRef = FirebaseFirestore.instance.collection('requests').doc();
       final imageUrl = await _uploadImage(recipeRef.id);

@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
+import 'package:soframda_ne_eksik/services/app_share_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/iap_service.dart';
 
@@ -19,6 +19,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     with SingleTickerProviderStateMixin {
   final IAPService iap = IAPService();
   final CreditService _creditService = CreditService();
+  final AppShareService _appShareService = const AppShareService();
   late final TabController _tabController;
 
   bool _isClaimingShareReward = false;
@@ -57,13 +58,30 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     });
 
     try {
-      await Share.share(
-        context.t(
+      final shareStatus = await _appShareService.shareText(
+        context,
+        message: context.t(
           'Soframda Ne Eksik uygulamasını dene. Ev yemeği, taşıma, organizasyon ve ilanlar için birlikte üretelim.',
           'Try the Soframda Ne Eksik app. Let us create together for home meals, delivery, events, and listings.',
         ),
         subject: 'Soframda Ne Eksik',
       );
+
+      if (!mounted || shareStatus == AppShareStatus.dismissed) return;
+      if (shareStatus == AppShareStatus.unavailable) {
+        await _showFeedback(
+          title: context.t(
+            'Paylaşım tamamlanamadı',
+            'Sharing could not be completed',
+          ),
+          message: context.t(
+            'Cihazında kullanılabilir bir paylaşım uygulaması bulunamadı.',
+            'No sharing app is available on your device.',
+          ),
+          icon: Icons.error_outline_rounded,
+        );
+        return;
+      }
 
       final status = await _creditService.claimMonthlyShareReward();
       if (!mounted) return;

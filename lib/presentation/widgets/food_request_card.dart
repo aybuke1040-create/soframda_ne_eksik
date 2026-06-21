@@ -1,4 +1,4 @@
-﻿import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -58,8 +58,8 @@ class FoodRequestCard extends StatelessWidget {
     final fallbackUserName =
         (request["userName"] ?? request["ownerName"] ?? "").toString();
     final price = request["price"];
-    final resolvedTrailingLabel = trailingLabel ??
-        ((price != null && price is num) ? "₺$price" : null);
+    final resolvedTrailingLabel =
+        trailingLabel ?? ((price != null && price is num) ? "₺$price" : null);
 
     final distanceRaw = request["distance"];
     final double? distance = distanceRaw is num ? distanceRaw.toDouble() : null;
@@ -201,12 +201,11 @@ class FoodRequestCard extends StatelessWidget {
                           : fallbackUserName.trim());
                   final rawSubtitle =
                       (subtitle ?? fallbackUserName).toString().trim();
-                  final infoSubtitle =
-                      rawSubtitle.isEmpty ||
-                              rawSubtitle == ownerLine ||
-                              _looksLikePrivateContact(rawSubtitle)
-                          ? ""
-                          : rawSubtitle;
+                  final infoSubtitle = rawSubtitle.isEmpty ||
+                          rawSubtitle == ownerLine ||
+                          _looksLikePrivateContact(rawSubtitle)
+                      ? ""
+                      : rawSubtitle;
 
                   return Container(
                     padding:
@@ -293,7 +292,8 @@ class FoodRequestCard extends StatelessWidget {
                 },
               ),
             ),
-            if (resolvedTrailingLabel != null && resolvedTrailingLabel.isNotEmpty)
+            if (resolvedTrailingLabel != null &&
+                resolvedTrailingLabel.isNotEmpty)
               Positioned(
                 bottom: showActions ? 35 : 10,
                 right: 10,
@@ -407,8 +407,8 @@ class FoodRequestCard extends StatelessWidget {
                                   hasOrdered || currentUserId == ownerId
                                       ? null
                                       : () async {
-                                          final success = await OfferService()
-                                              .sendOffer(
+                                          final success =
+                                              await OfferService().sendOffer(
                                             requestId: requestId,
                                             ownerId: ownerId,
                                             price: 0,
@@ -422,16 +422,17 @@ class FoodRequestCard extends StatelessWidget {
                                           }
 
                                           if (!success) {
-                                            PaywallService.showInsufficientCreditsSheet(
+                                            PaywallService
+                                                .showInsufficientCreditsSheet(
                                               context,
                                               title: isReadyRequest
-                                                  ? 'Siparis vermek icin 5 kredi gerekiyor'
-                                                  : 'Teklif vermek icin 5 kredi gerekiyor',
+                                                  ? 'Sipariş vermek için 5 kredi gerekiyor'
+                                                  : 'Teklif vermek için 5 kredi gerekiyor',
                                               message: isReadyRequest
-                                                  ? 'Siparisini olusturmak icin once kredi satin alabilir, sonra tek dokunusla devam edebilirsin.'
-                                                  : 'Teklifini gondermek icin once kredi satin alabilir, sonra tek dokunusla devam edebilirsin.',
+                                                  ? 'Siparişini oluşturmak için önce kredi satın alabilir, sonra tek dokunuşla devam edebilirsin.'
+                                                  : 'Teklifini göndermek için önce kredi satın alabilir, sonra tek dokunuşla devam edebilirsin.',
                                               highlight: isReadyRequest
-                                                  ? 'Siparis kredi paketleri'
+                                                  ? 'Sipariş kredi paketleri'
                                                   : 'Teklif kredi paketleri',
                                             );
                                             return;
@@ -445,7 +446,8 @@ class FoodRequestCard extends StatelessWidget {
                                             message: isReadyRequest
                                                 ? 'Sipariş gönderildi.'
                                                 : 'Teklif gönderildi.',
-                                            icon: Icons.check_circle_outline_rounded,
+                                            icon: Icons
+                                                .check_circle_outline_rounded,
                                           );
                                         },
                                 );

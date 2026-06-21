@@ -9,9 +9,8 @@ class AppLocaleScope extends InheritedNotifier<AppLocaleController> {
   }) : super(notifier: controller, child: child);
 
   static AppLocaleController of(BuildContext context) {
-    final scope =
-        context.dependOnInheritedWidgetOfExactType<AppLocaleScope>();
-    assert(scope != null, 'AppLocaleScope bulunamadi.');
+    final scope = context.dependOnInheritedWidgetOfExactType<AppLocaleScope>();
+    assert(scope != null, 'AppLocaleScope bulunamadı.');
     return scope!.notifier!;
   }
 }

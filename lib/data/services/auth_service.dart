@@ -11,8 +11,8 @@ class AuthService {
       'Dilersen e-posta seçeneğiyle devam edebilir ya da destek için '
       'benyaparimci@gmail.com adresine yazabilirsin.';
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  FirebaseAuth get _auth => FirebaseAuth.instance;
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
 
   Future<User?> login(String email, String password) async {
     final result = await _auth.signInWithEmailAndPassword(
@@ -218,12 +218,31 @@ class AuthService {
         case 'invalid-email':
           return 'Geçerli bir e-posta adresi gir.';
         case 'user-not-found':
-          return 'Bu e-posta ile eşleşen bir hesap bulunamadı.';
+        case 'wrong-password':
+        case 'invalid-credential':
+          return 'Bu bilgilerle eşleşen kayıtlı bir hesap bulunamadı. '
+              'E-posta adresini ve şifreni kontrol et veya "Kaydol" '
+              'seçeneğiyle yeni hesap oluştur.';
+        case 'user-disabled':
+          return 'Bu hesap kullanıma kapatılmış. Destek ekibiyle iletişime geç.';
+        case 'email-already-in-use':
+          return 'Bu e-posta adresiyle daha önce kayıt oluşturulmuş. '
+              '"Giriş Yap" seçeneğini kullan veya şifreni sıfırla.';
+        case 'weak-password':
+          return 'Şifre yeterince güçlü değil. En az 6 karakterden oluşan '
+              'daha güçlü bir şifre belirle.';
+        case 'operation-not-allowed':
+          return 'Bu giriş yöntemi şu anda kullanılamıyor. '
+              'Lütfen daha sonra tekrar dene.';
+        case 'no-current-user':
+          return 'Bu işlem için önce hesabına giriş yapmalısın.';
         default:
-          return error.message ?? 'Giriş sırasında bir hata oluştu.';
+          return 'Giriş işlemi tamamlanamadı. Bilgilerini kontrol edip tekrar '
+              'dene. Hesabın yoksa "Kaydol" seçeneğini kullan.';
       }
     }
 
-    return error.toString();
+    return 'Giriş işlemi tamamlanamadı. İnternet bağlantını ve bilgilerini '
+        'kontrol edip tekrar dene.';
   }
 }

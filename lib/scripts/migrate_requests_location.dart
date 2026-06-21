@@ -43,7 +43,7 @@ Future<void> migrateRequestsLocation() async {
     await batch.commit();
 
     // ignore: avoid_print
-    print('Bitti. Guncellenen: $updatedCount');
+    print('Bitti. Güncellenen: $updatedCount');
   } catch (error, stackTrace) {
     // ignore: avoid_print
     print('MIGRATION ERROR: $error');

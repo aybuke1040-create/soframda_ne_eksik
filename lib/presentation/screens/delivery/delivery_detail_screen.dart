@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
@@ -21,9 +21,9 @@ class DeliveryDetailScreen extends StatelessWidget {
   Future<String?> _pickModerationReason(BuildContext context) async {
     const reasons = <String>[
       'Hakaret veya taciz',
-      'Uygunsuz icerik',
+      'Uygunsuz içerik',
       'Spam veya dolandiricilik',
-      'Tehdit veya guvensiz davranis',
+      'Tehdit veya güvensiz davranış',
       'Diger',
     ];
 
@@ -41,7 +41,7 @@ class DeliveryDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Bu ilani neden sikayet etmek istiyorsun?',
+                  'Bu ilanı neden şikâyet etmek istiyorsun?',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 12),
@@ -78,9 +78,9 @@ class DeliveryDetailScreen extends StatelessWidget {
     if (!context.mounted) return;
     await ActionFeedbackService.show(
       context,
-      title: 'Sikayet alindi',
+      title: 'Şikâyet alındı',
       message:
-          'Bildirim alindi. Moderasyon ekibimiz en gec 24 saat icinde inceleyecek.',
+          'Bildirim alındı. Moderasyon ekibimiz en geç 24 saat içinde inceleyecek.',
       icon: Icons.flag_outlined,
     );
   }
@@ -88,7 +88,7 @@ class DeliveryDetailScreen extends StatelessWidget {
   Future<void> _blockOwner(BuildContext context, String ownerId) async {
     await ModerationService().blockUser(
       targetUserId: ownerId,
-      reason: 'Tasima ilaninda kullanici engellendi',
+      reason: 'Taşıma ilanında kullanıcı engellendi',
       metadata: {
         'surface': 'delivery_detail',
         'requestId': requestId,
@@ -98,9 +98,9 @@ class DeliveryDetailScreen extends StatelessWidget {
     if (!context.mounted) return;
     await ActionFeedbackService.show(
       context,
-      title: 'Kullanici engellendi',
+      title: 'Kullanıcı engellendi',
       message:
-          'Bu kullanicinin ilanlari ve iletisimleri artik sana gosterilmeyecek.',
+          'Bu kullanıcının ilanları ve iletişimleri artık sana gösterilmeyecek.',
       icon: Icons.block_outlined,
     );
     if (context.mounted) Navigator.pop(context);
@@ -264,8 +264,8 @@ class DeliveryDetailScreen extends StatelessWidget {
             appBar: AppBar(
                 title: Text(context.t('Taşıma İlanı', 'Delivery Listing'))),
             body: Center(
-                child: Text(
-                    context.t('İlan bulunamadı.', 'Listing not found.'))),
+                child:
+                    Text(context.t('İlan bulunamadı.', 'Listing not found.'))),
           );
         }
 
@@ -298,11 +298,11 @@ class DeliveryDetailScreen extends StatelessWidget {
                   itemBuilder: (_) => const [
                     PopupMenuItem<String>(
                       value: 'report',
-                      child: Text('Ilani Sikayet Et'),
+                      child: Text('İlanı Şikâyet Et'),
                     ),
                     PopupMenuItem<String>(
                       value: 'block',
-                      child: Text('Kullaniciyi Engelle'),
+                      child: Text('Kullanıcıyı Engelle'),
                     ),
                   ],
                 ),
@@ -334,8 +334,7 @@ class DeliveryDetailScreen extends StatelessWidget {
                             style: const TextStyle(
                                 fontSize: 22, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 10),
-                        Text(context.t(
-                            'Alış: ${data['pickupAddress'] ?? '-'}',
+                        Text(context.t('Alış: ${data['pickupAddress'] ?? '-'}',
                             'Pickup: ${data['pickupAddress'] ?? '-'}')),
                         Text(context.t('Bırak: ${data['dropAddress'] ?? '-'}',
                             'Drop-off: ${data['dropAddress'] ?? '-'}')),
@@ -385,8 +384,7 @@ class DeliveryDetailScreen extends StatelessWidget {
                           runSpacing: 12,
                           children: isOwner
                               ? [
-                                  _btn(context.t('Düzenle', 'Edit'),
-                                      onTap: () {
+                                  _btn(context.t('Düzenle', 'Edit'), onTap: () {
                                     Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -394,17 +392,14 @@ class DeliveryDetailScreen extends StatelessWidget {
                                                 CreateDeliveryRequestScreen(
                                                     requestId: requestId)));
                                   }),
-                                  _btn(
-                                      context.t(
-                                          'İlanı Sil', 'Delete Listing'),
+                                  _btn(context.t('İlanı Sil', 'Delete Listing'),
                                       onTap: () => _deleteRequest(context)),
                                   _btn(context.t('Öne Çıkar', 'Feature'),
                                       onTap: () async {
                                     if (isFeatureActive) {
                                       await ActionFeedbackService.show(
                                         context,
-                                        title:
-                                            'Bu ilan zaten öne çıkarılmış',
+                                        title: 'Bu ilan zaten öne çıkarılmış',
                                         message:
                                             'Bu ilan zaten öne çıkarılmış durumda. Ekstra bir işlem yapmana gerek yok.',
                                         icon: Icons.verified_rounded,
@@ -568,8 +563,7 @@ class DeliveryDetailScreen extends StatelessWidget {
                                               await ActionFeedbackService.show(
                                                 context,
                                                 title: 'Teklif açılamadı',
-                                                message:
-                                                    'Teklif açılamadı: $e',
+                                                message: 'Teklif açılamadı: $e',
                                                 icon:
                                                     Icons.error_outline_rounded,
                                               );

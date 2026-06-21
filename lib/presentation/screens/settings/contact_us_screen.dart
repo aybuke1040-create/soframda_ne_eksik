@@ -75,7 +75,7 @@ class ContactUsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bize Ulasin'),
+        title: const Text('Bize Ulaşın'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -94,7 +94,7 @@ class ContactUsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Sorun, oneriler veya is birlikleri icin bize ulasabilirsiniz.',
+                  'Sorun, öneri veya iş birlikleri için bize ulaşabilirsiniz.',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -103,7 +103,7 @@ class ContactUsScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'En kisa surede geri donmeye calisiyoruz.',
+                  'En kısa sürede geri dönmeye çalışıyoruz.',
                   style: TextStyle(height: 1.4),
                 ),
               ],
@@ -112,23 +112,23 @@ class ContactUsScreen extends StatelessWidget {
           const SizedBox(height: 18),
           _infoCard(
             icon: Icons.mail_outline,
-            title: 'Destek E-postasi',
+            title: 'Destek E-postası',
             value: supportEmail,
             subtitle:
-                'Uygulama, odeme ve hesap konulari icin bize yazabilirsiniz.',
+                'Uygulama, ödeme ve hesap konuları için bize yazabilirsiniz.',
           ),
           _infoCard(
             icon: Icons.camera_alt_outlined,
             title: 'Instagram',
             value: instagramHandle,
             subtitle:
-                'Guncellemeler ve duyurular icin sosyal medya hesabimizi takip edebilirsiniz.',
+                'Güncellemeler ve duyurular için sosyal medya hesabımızı takip edebilirsiniz.',
           ),
           _infoCard(
             icon: Icons.schedule_outlined,
-            title: 'Calisma Saatleri',
+            title: 'Çalışma Saatleri',
             value: businessHours,
-            subtitle: 'Yogun donemlerde donus sureleri uzayabilir.',
+            subtitle: 'Yoğun dönemlerde dönüş süreleri uzayabilir.',
           ),
         ],
       ),

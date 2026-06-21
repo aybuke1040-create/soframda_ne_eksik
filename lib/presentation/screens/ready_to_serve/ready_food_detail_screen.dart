@@ -134,9 +134,9 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
   Future<String?> _pickModerationReason() async {
     const reasons = <String>[
       'Hakaret veya taciz',
-      'Uygunsuz icerik',
+      'Uygunsuz içerik',
       'Spam veya dolandiricilik',
-      'Tehdit veya guvensiz davranis',
+      'Tehdit veya güvensiz davranış',
       'Diger',
     ];
 
@@ -154,7 +154,7 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Bu ilani neden sikayet etmek istiyorsun?',
+                  'Bu ilanı neden şikâyet etmek istiyorsun?',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 12),
@@ -190,9 +190,9 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
     if (!mounted) return;
     await ActionFeedbackService.show(
       context,
-      title: 'Sikayet alindi',
+      title: 'Şikâyet alındı',
       message:
-          'Bildirim alindi. Moderasyon ekibimiz en gec 24 saat icinde inceleyecek.',
+          'Bildirim alındı. Moderasyon ekibimiz en geç 24 saat içinde inceleyecek.',
       icon: Icons.flag_outlined,
     );
   }
@@ -200,7 +200,7 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
   Future<void> _blockOwner(String ownerId) async {
     await ModerationService().blockUser(
       targetUserId: ownerId,
-      reason: 'Hazir yemek ilaninda kullanici engellendi',
+      reason: 'Hazır yemek ilanında kullanıcı engellendi',
       metadata: {
         'surface': 'ready_food_detail',
         'requestId': widget.requestId,
@@ -210,9 +210,9 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
     if (!mounted) return;
     await ActionFeedbackService.show(
       context,
-      title: 'Kullanici engellendi',
+      title: 'Kullanıcı engellendi',
       message:
-          'Bu kullanicinin ilanlari ve iletisimleri artik sana gosterilmeyecek.',
+          'Bu kullanıcının ilanları ve iletişimleri artık sana gösterilmeyecek.',
       icon: Icons.block_outlined,
     );
     if (mounted) Navigator.pop(context);
@@ -421,11 +421,11 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                       itemBuilder: (_) => const [
                         PopupMenuItem<String>(
                           value: 'report',
-                          child: Text('Ilani Sikayet Et'),
+                          child: Text('İlanı Şikâyet Et'),
                         ),
                         PopupMenuItem<String>(
                           value: 'block',
-                          child: Text('Kullaniciyi Engelle'),
+                          child: Text('Kullanıcıyı Engelle'),
                         ),
                       ],
                     ),

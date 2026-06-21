@@ -90,7 +90,7 @@ class StartupErrorApp extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.all(24),
               child: Text(
-                'Uygulama baslatilamadi. Lutfen internet baglantinizi kontrol edip tekrar deneyin.',
+                'Uygulama başlatılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
                 textAlign: TextAlign.center,
               ),
             ),
@@ -146,10 +146,13 @@ class _MyAppState extends State<MyApp> {
         }
 
         final batch = FirebaseFirestore.instance.batch();
-        batch.set(_privateContextRef(user.uid), {
-          'fcmToken': token,
-          'pushUpdatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        batch.set(
+            _privateContextRef(user.uid),
+            {
+              'fcmToken': token,
+              'pushUpdatedAt': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true));
         batch.set(
           FirebaseFirestore.instance.collection('users').doc(user.uid),
           {
@@ -217,7 +220,7 @@ class _MyAppState extends State<MyApp> {
       updates['longitude'] = position.longitude;
       updates['locationUpdatedAt'] = FieldValue.serverTimestamp();
     } catch (_) {
-      // Konum izni verilmemisse token kaydi yine de devam etsin.
+      // Konum izni verilmemişse token kaydı yine de devam etsin.
     }
 
     final batch = FirebaseFirestore.instance.batch();

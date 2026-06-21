@@ -28,9 +28,9 @@ class RequestDetailScreen extends StatelessWidget {
   Future<String?> _pickModerationReason(BuildContext context) async {
     const reasons = <String>[
       'Hakaret veya taciz',
-      'Uygunsuz icerik',
+      'Uygunsuz içerik',
       'Spam veya dolandiricilik',
-      'Tehdit veya guvensiz davranis',
+      'Tehdit veya güvensiz davranış',
       'Diger',
     ];
 
@@ -48,7 +48,7 @@ class RequestDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Bu ilani neden sikayet etmek istiyorsun?',
+                  'Bu ilanı neden şikâyet etmek istiyorsun?',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -88,9 +88,9 @@ class RequestDetailScreen extends StatelessWidget {
 
     await ActionFeedbackService.show(
       context,
-      title: 'Sikayet alindi',
+      title: 'Şikâyet alındı',
       message:
-          'Bu ilanla ilgili bildirimin alindi. Moderasyon ekibimiz 24 saat icinde inceleyecek.',
+          'Bu ilanla ilgili bildirimini aldık. Moderasyon ekibimiz 24 saat içinde inceleyecek.',
       icon: Icons.flag_outlined,
     );
   }
@@ -467,7 +467,7 @@ class RequestDetailScreen extends StatelessWidget {
                                 _actionCard(
                                   icon: Icons.flag_outlined,
                                   title: context.t(
-                                      'Ilani Sikayet Et', 'Report Listing'),
+                                      'İlanı Şikâyet Et', 'Report Listing'),
                                   color: Colors.redAccent,
                                   onTap: () => _reportRequest(context),
                                 ),

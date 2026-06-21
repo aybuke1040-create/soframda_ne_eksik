@@ -12,10 +12,11 @@ class UserService {
     final snapshot = await userDoc.get();
     final existingData = snapshot.data();
     final existingName = (existingData?["name"] as String? ?? "").trim();
-    final existingPhotoUrl = (existingData?["photoUrl"] as String? ?? "").trim();
+    final existingPhotoUrl =
+        (existingData?["photoUrl"] as String? ?? "").trim();
 
     final data = {
-      "name": existingName.isNotEmpty ? existingName : "Kullanici",
+      "name": existingName.isNotEmpty ? existingName : "Kullanıcı",
       "photoUrl": existingPhotoUrl,
       "updatedAt": FieldValue.serverTimestamp(),
     };

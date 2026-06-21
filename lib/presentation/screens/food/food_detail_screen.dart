@@ -95,16 +95,15 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
   }
 
   Future<void> _deleteRequest() async {
-    final shouldDelete =
-        await showDialog<bool>(
+    final shouldDelete = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('Ilan silinsin mi?'),
-            content: const Text('Bu islem geri alinamaz.'),
+            title: const Text('İlan silinsin mi?'),
+            content: const Text('Bu işlem geri alınamaz.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Iptal'),
+                child: const Text('İptal'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
@@ -124,8 +123,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
 
     await ActionFeedbackService.show(
       context,
-      title: 'Ilan silindi',
-      message: 'Ilan ve iliskili kayitlar kaldirildi.',
+      title: 'İlan silindi',
+      message: 'İlan ve ilişkili kayıtlar kaldırıldı.',
       icon: Icons.delete_outline_rounded,
     );
   }
@@ -147,9 +146,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
   Future<String?> _pickModerationReason() async {
     const reasons = <String>[
       'Hakaret veya taciz',
-      'Uygunsuz icerik',
+      'Uygunsuz içerik',
       'Spam veya dolandiricilik',
-      'Tehdit veya guvensiz davranis',
+      'Tehdit veya güvensiz davranış',
       'Diger',
     ];
 
@@ -167,7 +166,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Bu ilani neden sikayet etmek istiyorsun?',
+                  'Bu ilanı neden şikâyet etmek istiyorsun?',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 12),
@@ -203,8 +202,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     if (!mounted) return;
     await ActionFeedbackService.show(
       context,
-      title: 'Sikayet alindi',
-      message: 'Bildirim alindi. Moderasyon ekibimiz en gec 24 saat icinde inceleyecek.',
+      title: 'Şikâyet alındı',
+      message:
+          'Bildirim alındı. Moderasyon ekibimiz en geç 24 saat içinde inceleyecek.',
       icon: Icons.flag_outlined,
     );
   }
@@ -212,7 +212,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
   Future<void> _blockOwner() async {
     await ModerationService().blockUser(
       targetUserId: widget.ownerId,
-      reason: 'Hazir yemek ilaninda kullanici engellendi',
+      reason: 'Hazır yemek ilanında kullanıcı engellendi',
       metadata: {
         'surface': 'food_detail',
         'requestId': widget.requestId,
@@ -222,8 +222,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     if (!mounted) return;
     await ActionFeedbackService.show(
       context,
-      title: 'Kullanici engellendi',
-      message: 'Bu kullanicinin ilanlari ve iletisimleri artik sana gosterilmeyecek.',
+      title: 'Kullanıcı engellendi',
+      message:
+          'Bu kullanıcının ilanları ve iletişimleri artık sana gösterilmeyecek.',
       icon: Icons.block_outlined,
     );
     if (mounted) Navigator.pop(context);
@@ -267,9 +268,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
       builder: (context, requestSnapshot) {
         final requestData = requestSnapshot.data?.data() ?? <String, dynamic>{};
         final bool isFeatured = requestData['isFeatured'] == true;
-        final Timestamp? featuredUntil = requestData['featuredUntil'] as Timestamp?;
-        final bool isFeatureActive =
-            isFeatured && featuredUntil != null && featuredUntil.toDate().isAfter(DateTime.now());
+        final Timestamp? featuredUntil =
+            requestData['featuredUntil'] as Timestamp?;
+        final bool isFeatureActive = isFeatured &&
+            featuredUntil != null &&
+            featuredUntil.toDate().isAfter(DateTime.now());
 
         return Scaffold(
           appBar: AppBar(
@@ -299,11 +302,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                   itemBuilder: (_) => const [
                     PopupMenuItem<String>(
                       value: 'report',
-                      child: Text('Ilani Sikayet Et'),
+                      child: Text('İlanı Şikâyet Et'),
                     ),
                     PopupMenuItem<String>(
                       value: 'block',
-                      child: Text('Kullaniciyi Engelle'),
+                      child: Text('Kullanıcıyı Engelle'),
                     ),
                   ],
                 ),
@@ -366,20 +369,22 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                             ? [
                                 _buildActionCard(
                                   icon: Icons.star,
-                                  title: 'One Cikar (50 kredi)',
+                                  title: 'Öne Çıkar (50 kredi)',
                                   color: Colors.orange,
                                   onTap: () async {
                                     if (isFeatureActive) {
                                       await ActionFeedbackService.show(
                                         context,
                                         title: 'Bu ilan zaten one cikarilmis',
-                                        message: 'Bu ilan zaten one cikarilmis durumda.',
+                                        message:
+                                            'Bu ilan zaten one cikarilmis durumda.',
                                         icon: Icons.verified_rounded,
                                       );
                                       return;
                                     }
 
-                                    final success = await CreditService().performAction(
+                                    final success =
+                                        await CreditService().performAction(
                                       userId: userId,
                                       cost: 50,
                                       actionName: 'feature',
@@ -390,7 +395,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                                             .update({
                                           'isFeatured': true,
                                           'featuredUntil': Timestamp.fromDate(
-                                            DateTime.now().add(const Duration(days: 3)),
+                                            DateTime.now()
+                                                .add(const Duration(days: 3)),
                                           ),
                                         });
                                       },
@@ -399,8 +405,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                                     if (success && mounted) {
                                       await ActionFeedbackService.show(
                                         context,
-                                        title: 'Ilan one cikarildi',
-                                        message: 'Ilan one cikarildi.',
+                                        title: 'İlan öne çıkarıldı',
+                                        message: 'İlan öne çıkarıldı.',
                                         icon: Icons.star_rounded,
                                       );
                                     }
@@ -408,7 +414,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                                 ),
                                 _buildActionCard(
                                   icon: Icons.delete_outline,
-                                  title: 'Ilani Sil',
+                                  title: 'İlanı Sil',
                                   color: Colors.red,
                                   onTap: _deleteRequest,
                                 ),
@@ -416,13 +422,13 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                             : [
                                 _buildActionCard(
                                   icon: Icons.chat,
-                                  title: 'Mesaj Gonder\n(Ilk mesaj 10 kredi)',
+                                  title: 'Mesaj Gönder\n(İlk mesaj 10 kredi)',
                                   color: Colors.blue,
                                   onTap: _openChat,
                                 ),
                                 _buildActionCard(
                                   icon: Icons.shopping_bag,
-                                  title: 'Siparis Ver',
+                                  title: 'Sipariş Ver',
                                   color: Colors.green,
                                   onTap: _openChat,
                                 ),

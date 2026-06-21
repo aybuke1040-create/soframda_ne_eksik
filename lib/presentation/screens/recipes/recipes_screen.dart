@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/presentation/screens/recipes/create_recipe_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/recipes/recipe_detail_screen.dart';
@@ -49,7 +49,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: const Text(
-              'Tarifini paylas, ilhama donussun. Dilersen bir tariften dogrudan ilan acip "Bu tariften istiyorum" diyebilirsin.',
+              'Tarifini paylaş, ilhama dönüşsün. Dilersen bir tariften doğrudan ilan açıp "Bu tariften istiyorum" diyebilirsin.',
               style: TextStyle(height: 1.4),
             ),
           ),
@@ -103,8 +103,10 @@ class _RecipesScreenState extends State<RecipesScreen> {
                 docs.sort((a, b) {
                   final aTime = (a.data() as Map<String, dynamic>)['createdAt'];
                   final bTime = (b.data() as Map<String, dynamic>)['createdAt'];
-                  final aMs = aTime is Timestamp ? aTime.millisecondsSinceEpoch : 0;
-                  final bMs = bTime is Timestamp ? bTime.millisecondsSinceEpoch : 0;
+                  final aMs =
+                      aTime is Timestamp ? aTime.millisecondsSinceEpoch : 0;
+                  final bMs =
+                      bTime is Timestamp ? bTime.millisecondsSinceEpoch : 0;
                   return bMs.compareTo(aMs);
                 });
 
@@ -130,7 +132,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'Henuz tarif yok.\nIlk tarifi sen ekleyebilirsin.',
+                        'Henüz tarif yok.\nİlk tarifi sen ekleyebilirsin.',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -142,7 +144,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        'Aramana uygun tarif bulunamadi.',
+                        'Aramana uygun tarif bulunamadı.',
                         textAlign: TextAlign.center,
                       ),
                     ),
@@ -153,7 +155,8 @@ class _RecipesScreenState extends State<RecipesScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                   itemCount: filteredDocs.length,
                   itemBuilder: (context, index) {
-                    final data = filteredDocs[index].data() as Map<String, dynamic>;
+                    final data =
+                        filteredDocs[index].data() as Map<String, dynamic>;
                     final title = data['title'] as String? ?? '';
                     final description = data['description'] as String? ?? '';
                     final ownerName = data['ownerName'] as String? ?? '';
@@ -221,7 +224,7 @@ class _RecipesScreenState extends State<RecipesScreen> {
                                     const SizedBox(height: 6),
                                     Text(
                                       description.trim().isEmpty
-                                          ? 'Detay icin ac'
+                                          ? 'Detay için aç'
                                           : description,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,

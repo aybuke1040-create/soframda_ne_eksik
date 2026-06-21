@@ -110,7 +110,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: isSubmitting ? null : submitReview,
-                child: Text(isSubmitting ? "Gonderiliyor..." : "Gonder"),
+                child: Text(isSubmitting ? "Gönderiliyor..." : "Gönder"),
               ),
             ),
           ],

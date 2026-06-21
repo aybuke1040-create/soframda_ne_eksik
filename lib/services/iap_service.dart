@@ -75,7 +75,7 @@ class IAPService {
     if (!isAvailable) {
       return const PurchaseFlowResult(
         status: PurchaseFlowStatus.failed,
-        message: 'Magaza baglantisi su an kullanilamiyor.',
+        message: 'Mağaza bağlantısı şu an kullanılamıyor.',
       );
     }
 
@@ -84,7 +84,7 @@ class IAPService {
       return const PurchaseFlowResult(
         status: PurchaseFlowStatus.failed,
         message:
-            'Bu satin alma istegi magaza tarafinda hala isleniyor. Kisa sure sonra tekrar dene.',
+            'Bu satın alma isteği mağaza tarafında hâlâ işleniyor. Kısa süre sonra tekrar dene.',
       );
     }
 
@@ -114,7 +114,7 @@ class IAPService {
         _pendingPurchases.remove(product.id);
         return const PurchaseFlowResult(
           status: PurchaseFlowStatus.failed,
-          message: 'Satin alma baslatilamadi.',
+          message: 'Satın alma başlatılamadı.',
         );
       }
 
@@ -124,7 +124,7 @@ class IAPService {
           _pendingPurchases.remove(product.id);
           return const PurchaseFlowResult(
             status: PurchaseFlowStatus.failed,
-            message: 'Satin alma dogrulamasi zaman asimina ugradi.',
+            message: 'Satın alma doğrulaması zaman aşımına uğradı.',
           );
         },
       );
@@ -140,13 +140,13 @@ class IAPService {
 
       return PurchaseFlowResult(
         status: PurchaseFlowStatus.failed,
-        message: e.message ?? 'Satin alma su an tamamlanamadi.',
+        message: e.message ?? 'Satın alma şu an tamamlanamadı.',
       );
     } catch (_) {
       _pendingPurchases.remove(product.id);
       return const PurchaseFlowResult(
         status: PurchaseFlowStatus.failed,
-        message: 'Satin alma su an tamamlanamadi.',
+        message: 'Satın alma şu an tamamlanamadı.',
       );
     }
   }
@@ -162,7 +162,7 @@ class IAPService {
             purchase.productID,
             const PurchaseFlowResult(
               status: PurchaseFlowStatus.cancelled,
-              message: 'Satin alma iptal edildi.',
+              message: 'Satın alma iptal edildi.',
             ),
           );
           break;
@@ -173,7 +173,7 @@ class IAPService {
             PurchaseFlowResult(
               status: PurchaseFlowStatus.failed,
               message:
-                  purchase.error?.message ?? 'Satin alma su an tamamlanamadi.',
+                  purchase.error?.message ?? 'Satın alma şu an tamamlanamadı.',
             ),
           );
           break;
@@ -208,7 +208,7 @@ class IAPService {
 
     return const PurchaseFlowResult(
       status: PurchaseFlowStatus.failed,
-      message: 'Satin alma dogrulanamadi.',
+      message: 'Satın alma doğrulanamadı.',
     );
   }
 
@@ -218,7 +218,7 @@ class IAPService {
     try {
       final purchaseToken = purchase.verificationData.serverVerificationData;
       if (purchaseToken.trim().isEmpty) {
-        throw Exception('Satin alma dogrulamasi alinamadi.');
+        throw Exception('Satın alma doğrulaması alınamadı.');
       }
 
       final result = await _callPurchaseVerifier(purchase);
@@ -233,18 +233,18 @@ class IAPService {
       return PurchaseFlowResult(
         status: PurchaseFlowStatus.success,
         message: alreadyGranted
-            ? 'Bu satin alma daha once islenmis ve urun temizlendi. Tekrar satin alabilirsin.'
+            ? 'Bu satın alma daha önce işlenmiş ve ürün temizlendi. Tekrar satın alabilirsin.'
             : '$grantedCredits kredi hesabina eklendi.',
       );
     } on FirebaseFunctionsException catch (e) {
       return PurchaseFlowResult(
         status: PurchaseFlowStatus.failed,
-        message: e.message ?? 'Satin alma dogrulanamadi.',
+        message: e.message ?? 'Satın alma doğrulanamadı.',
       );
     } catch (_) {
       return const PurchaseFlowResult(
         status: PurchaseFlowStatus.failed,
-        message: 'Satin alma dogrulanamadi.',
+        message: 'Satın alma doğrulanamadı.',
       );
     }
   }
@@ -315,7 +315,7 @@ class IAPService {
           return const PurchaseFlowResult(
             status: PurchaseFlowStatus.failed,
             message:
-                'Google Play tarafinda takili kalan eski satin alma kaydi temizlendi. Lutfen tekrar satin almayi dene.',
+                'Google Play tarafında takılı kalan eski satın alma kaydı temizlendi. Lütfen tekrar satın almayı dene.',
           );
         }
 

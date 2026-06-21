@@ -1,8 +1,7 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/core/utils/distance_utils.dart';
 import 'package:soframda_ne_eksik/core/utils/location_utils.dart';
@@ -22,6 +21,7 @@ import 'package:soframda_ne_eksik/presentation/screens/requests/open_requests_sc
 import 'package:soframda_ne_eksik/presentation/widgets/credit_badge.dart';
 import 'package:soframda_ne_eksik/presentation/widgets/food_request_card.dart';
 import 'package:soframda_ne_eksik/services/app_update_service.dart';
+import 'package:soframda_ne_eksik/services/app_share_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/moderation_service.dart';
 import 'package:soframda_ne_eksik/services/nearby_food_service.dart';
@@ -35,6 +35,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late final NearbyFoodService _nearbyFoodService;
+  final AppShareService _appShareService = const AppShareService();
 
   double? userLat;
   double? userLng;
@@ -169,7 +170,27 @@ class _HomeScreenState extends State<HomeScreen> {
         'Ben Yaparım 30 km çevrendeki ilanları ve yardımlaşma taleplerini gösterir. '
         'Bölgemizde kullanıcı arttıkça ilanlar daha hızlı eşleşecek. Sen de katıl: $appLink';
 
-    await Share.share(message);
+    final shareStatus = await _appShareService.shareText(
+      context,
+      message: message,
+      subject: 'Ben Yaparım',
+    );
+    if (!mounted || shareStatus == AppShareStatus.dismissed) {
+      return;
+    }
+    if (shareStatus == AppShareStatus.unavailable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.t(
+              'Cihazında kullanılabilir bir paylaşım uygulaması bulunamadı.',
+              'No sharing app is available on your device.',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
 
     final rewardStatus = await CreditService().claimMonthlyShareReward();
     if (!mounted) {

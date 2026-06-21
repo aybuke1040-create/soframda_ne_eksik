@@ -19,7 +19,7 @@ class DesignRequestsScreen extends StatefulWidget {
 class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
   static const List<Map<String, dynamic>> _designIdeas = [
     {
-      'title': 'Acilis Organizasyonu',
+      'title': 'Açılış Organizasyonu',
       'category': 'Kurumsal',
       'presetCategory': 'kurumsal',
       'icon': Icons.celebration_outlined,
@@ -29,7 +29,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
     },
     {
       'title': 'Baby Shower Konsepti',
-      'category': 'Ozel Gun',
+      'category': 'Özel Gün',
       'presetCategory': 'baby_shower',
       'icon': Icons.child_care_outlined,
       'accent': Color(0xFFDD7FA2),
@@ -45,7 +45,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
       'description': 'Sahne arkası, karşılama panosu ve çekim alanı tasarlat.',
     },
     {
-      'title': 'Bekarliga Veda',
+      'title': 'Bekârlığa Veda',
       'category': 'Kutlama',
       'presetCategory': 'bekarliga_veda',
       'icon': Icons.nightlife_outlined,
@@ -63,7 +63,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
     },
     {
       'title': 'Cinsiyet Partisi',
-      'category': 'Ozel Gun',
+      'category': 'Özel Gün',
       'presetCategory': 'gender_party',
       'icon': Icons.favorite_border,
       'accent': Color(0xFFCC7FE6),
@@ -71,7 +71,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
     },
     {
       'title': 'Diş Buğdayı',
-      'category': 'Ozel Gun',
+      'category': 'Özel Gün',
       'presetCategory': 'dis_bugdayi',
       'icon': Icons.child_friendly_outlined,
       'accent': Color(0xFF8D9EFF),
@@ -79,7 +79,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
     },
     {
       'title': 'Düğün Karşılama Alanı',
-      'category': 'Ozel Gun',
+      'category': 'Özel Gün',
       'presetCategory': 'dugun',
       'icon': Icons.auto_awesome_outlined,
       'accent': Color(0xFFC69A4B),
@@ -104,7 +104,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
     },
     {
       'title': 'Kına Gecesi',
-      'category': 'Ozel Gun',
+      'category': 'Özel Gün',
       'presetCategory': 'kina',
       'icon': Icons.spa_outlined,
       'accent': Color(0xFFB6435A),
@@ -129,7 +129,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
     },
     {
       'title': 'Nişan Konsepti',
-      'category': 'Ozel Gun',
+      'category': 'Özel Gün',
       'presetCategory': 'nisan',
       'icon': Icons.favorite_outline,
       'accent': Color(0xFFD95A6F),
@@ -156,7 +156,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
     },
     {
       'title': 'Söz İsteme Düzeni',
-      'category': 'Ozel Gun',
+      'category': 'Özel Gün',
       'presetCategory': 'soz',
       'icon': Icons.volunteer_activism_outlined,
       'accent': Color(0xFF8C5A72),
@@ -472,7 +472,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
               children: [
                 Center(
                   child: Text(
-                    'Dogum gunu',
+                    'Doğum günü',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -483,7 +483,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
                 _bannerDot(),
                 Center(
                   child: Text(
-                    'Nisan',
+                    'Nişan',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -505,7 +505,7 @@ class _DesignRequestsScreenState extends State<DesignRequestsScreen> {
                 _bannerDot(),
                 Center(
                   child: Text(
-                    'Dugun',
+                    'Düğün',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -632,29 +632,29 @@ String categoryLabel(String key) {
     case 'baby_shower':
       return 'Baby Shower';
     case 'bekarliga_veda':
-      return 'Bekarliga Veda';
+      return 'Bekârlığa Veda';
     case 'coffee_corner':
       return 'Kahve Köşesi';
     case 'dis_bugdayi':
-      return 'Dis Bugdayi';
+      return 'Diş Buğdayı';
     case 'dogum_gunu':
-      return 'Dogum Gunu';
+      return 'Doğum Günü';
     case 'dugun':
-      return 'Dugun';
+      return 'Düğün';
     case 'gender_party':
       return 'Cinsiyet Partisi';
     case 'happy_hour':
       return 'Happy Hour';
     case 'kina':
-      return 'Kina';
+      return 'Kına';
     case 'kurumsal':
       return 'Kurumsal';
     case 'masa_duzeni':
-      return 'Masa Duzeni';
+      return 'Masa Düzeni';
     case 'mezuniyet':
       return 'Mezuniyet';
     case 'nisan':
-      return 'Nisan';
+      return 'Nişan';
     case 'piknik':
       return 'Piknik';
     case 'soz':
