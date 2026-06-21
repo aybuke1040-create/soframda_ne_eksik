@@ -53,6 +53,10 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
   Future<void> _shareAppAndClaimReward() async {
     if (_isClaimingShareReward) return;
 
+    final appLink = defaultTargetPlatform == TargetPlatform.iOS
+        ? 'https://apps.apple.com/app/id6762226701'
+        : 'https://play.google.com/store/apps/details?id=com.benyaparim.app';
+
     setState(() {
       _isClaimingShareReward = true;
     });
@@ -61,10 +65,10 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
       final shareStatus = await _appShareService.shareText(
         context,
         message: context.t(
-          'Soframda Ne Eksik uygulamasını dene. Ev yemeği, taşıma, organizasyon ve ilanlar için birlikte üretelim.',
-          'Try the Soframda Ne Eksik app. Let us create together for home meals, delivery, events, and listings.',
+          'Ben Yaparım ile ev yemeği, taşıma, organizasyon ve diğer ihtiyaçların için yakınındaki kişilerle kolayca buluş. Sen de katıl: $appLink',
+          'Use Ben Yaparım to connect with people nearby for home meals, delivery, events, listings, and more. Join us: $appLink',
         ),
-        subject: 'Soframda Ne Eksik',
+        subject: 'Ben Yaparım',
       );
 
       if (!mounted || shareStatus == AppShareStatus.dismissed) return;

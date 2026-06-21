@@ -164,9 +164,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _shareAppForLocalGrowth() async {
-    const appLink =
-        'https://play.google.com/store/apps/details?id=com.benyaparim.app';
-    const message =
+    final appLink = defaultTargetPlatform == TargetPlatform.iOS
+        ? 'https://apps.apple.com/app/id6762226701'
+        : 'https://play.google.com/store/apps/details?id=com.benyaparim.app';
+    final message =
         'Ben Yaparım 30 km çevrendeki ilanları ve yardımlaşma taleplerini gösterir. '
         'Bölgemizde kullanıcı arttıkça ilanlar daha hızlı eşleşecek. Sen de katıl: $appLink';
 
