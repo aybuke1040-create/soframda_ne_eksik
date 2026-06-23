@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class AdminBroadcast {
   const AdminBroadcast({
@@ -8,6 +9,8 @@ class AdminBroadcast {
     required this.body,
     this.actionLabel,
     this.actionUrl,
+    this.androidActionUrl,
+    this.iosActionUrl,
   });
 
   final String id;
@@ -15,6 +18,21 @@ class AdminBroadcast {
   final String body;
   final String? actionLabel;
   final String? actionUrl;
+  final String? androidActionUrl;
+  final String? iosActionUrl;
+
+  String? get platformActionUrl {
+    if (defaultTargetPlatform == TargetPlatform.iOS && iosActionUrl != null) {
+      return iosActionUrl;
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        androidActionUrl != null) {
+      return androidActionUrl;
+    }
+
+    return actionUrl;
+  }
 }
 
 class AdminBroadcastService {
@@ -97,6 +115,13 @@ class AdminBroadcastService {
       actionUrl: (data['actionUrl'] ?? '').toString().trim().isEmpty
           ? null
           : data['actionUrl'].toString().trim(),
+      androidActionUrl:
+          (data['androidActionUrl'] ?? '').toString().trim().isEmpty
+              ? null
+              : data['androidActionUrl'].toString().trim(),
+      iosActionUrl: (data['iosActionUrl'] ?? '').toString().trim().isEmpty
+          ? null
+          : data['iosActionUrl'].toString().trim(),
     );
   }
 

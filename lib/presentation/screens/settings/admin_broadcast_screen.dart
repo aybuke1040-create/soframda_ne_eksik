@@ -19,8 +19,11 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
         'Yeni ilanları ve mesajları kaçırmamak için uygulamanı güncelleyip bildirimlerini açmanı öneririz. Desteğin için teşekkür ederiz.',
   );
   final _actionLabelController = TextEditingController(text: 'Güncellemeyi Aç');
-  final _actionUrlController = TextEditingController(
+  final _androidActionUrlController = TextEditingController(
     text: 'https://play.google.com/store/apps/details?id=com.benyaparim.app',
+  );
+  final _iosActionUrlController = TextEditingController(
+    text: 'https://apps.apple.com/app/id6762226701',
   );
   final _durationController = TextEditingController(text: '14');
   bool _sendPush = true;
@@ -32,7 +35,8 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
     _titleController.dispose();
     _bodyController.dispose();
     _actionLabelController.dispose();
-    _actionUrlController.dispose();
+    _androidActionUrlController.dispose();
+    _iosActionUrlController.dispose();
     _durationController.dispose();
     super.dispose();
   }
@@ -52,7 +56,8 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
         'title': _titleController.text.trim(),
         'body': _bodyController.text.trim(),
         'actionLabel': _actionLabelController.text.trim(),
-        'actionUrl': _actionUrlController.text.trim(),
+        'androidActionUrl': _androidActionUrlController.text.trim(),
+        'iosActionUrl': _iosActionUrlController.text.trim(),
         'showOnOpen': _showOnOpen,
         'sendPush': _sendPush,
         'durationDays': days,
@@ -146,7 +151,7 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
               border: Border.all(color: const Color(0xFFF0DFC3)),
             ),
             child: const Text(
-              'Bu ekrandan gönderilen duyuru, bildirim izni açık kullanıcılara push olarak gider. Bildirimi kapalı olan kullanıcılar da uygulamayı açınca aynı mesajı görür.',
+              'Bu ekrandan gönderilen duyuru, bildirim izni açık kullanıcılara push olarak gider. Bildirimi kapalı olan kullanıcılar da uygulamayı açınca aynı mesajı görür. Kullanıcı "Bir daha gösterme" derse aynı duyuru tekrar gösterilmez.',
               style: TextStyle(height: 1.4),
             ),
           ),
@@ -187,9 +192,18 @@ class _AdminBroadcastScreenState extends State<AdminBroadcastScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
-                  controller: _actionUrlController,
+                  controller: _androidActionUrlController,
                   decoration: const InputDecoration(
-                    labelText: 'Buton bağlantısı',
+                    labelText: 'Android bağlantısı',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: _validateOptionalUrl,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _iosActionUrlController,
+                  decoration: const InputDecoration(
+                    labelText: 'iOS bağlantısı',
                     border: OutlineInputBorder(),
                   ),
                   validator: _validateOptionalUrl,

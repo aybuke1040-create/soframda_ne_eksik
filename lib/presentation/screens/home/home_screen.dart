@@ -136,7 +136,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _showAdminBroadcastDialog(AdminBroadcast broadcast) async {
-    final shouldOpenAction = await showDialog<bool>(
+    final actionUrl = broadcast.platformActionUrl;
+    final selectedAction = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -145,12 +146,16 @@ class _HomeScreenState extends State<HomeScreen> {
           content: Text(broadcast.body),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Tamam'),
+              onPressed: () => Navigator.pop(dialogContext, 'later'),
+              child: const Text('Daha Sonra'),
             ),
-            if (broadcast.actionLabel != null && broadcast.actionUrl != null)
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, 'dismiss'),
+              child: const Text('Bir Daha Gösterme'),
+            ),
+            if (broadcast.actionLabel != null && actionUrl != null)
               ElevatedButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
+                onPressed: () => Navigator.pop(dialogContext, 'action'),
                 child: Text(broadcast.actionLabel!),
               ),
           ],
@@ -158,10 +163,13 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
 
-    await AdminBroadcastService().dismiss(broadcast.id);
+    if (selectedAction == 'dismiss' || selectedAction == 'action') {
+      await AdminBroadcastService().dismiss(broadcast.id);
+    }
 
-    final actionUrl = broadcast.actionUrl;
-    if (shouldOpenAction == true && actionUrl != null && actionUrl.isNotEmpty) {
+    if (selectedAction == 'action' &&
+        actionUrl != null &&
+        actionUrl.isNotEmpty) {
       final uri = Uri.tryParse(actionUrl);
       if (uri != null) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);

@@ -24,6 +24,9 @@ const ADMIN_BROADCAST_MAX_DURATION_DAYS = 30;
 const ADMIN_BROADCAST_DEFAULT_DURATION_DAYS = 14;
 const APP_PACKAGE_NAME = "com.benyaparim.app";
 const APP_BUNDLE_ID = "com.benyaparim.app";
+const DEFAULT_ANDROID_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.benyaparim.app";
+const DEFAULT_IOS_STORE_URL = "https://apps.apple.com/app/id6762226701";
 const APPLE_VERIFY_RECEIPT_PRODUCTION_URL =
   "https://buy.itunes.apple.com/verifyReceipt";
 const APPLE_VERIFY_RECEIPT_SANDBOX_URL =
@@ -447,6 +450,8 @@ exports.createAdminBroadcast = onCall(async (request) => {
     body,
     actionLabel,
     actionUrl,
+    androidActionUrl,
+    iosActionUrl,
     showOnOpen,
     sendPush,
     durationDays,
@@ -456,6 +461,10 @@ exports.createAdminBroadcast = onCall(async (request) => {
   const normalizedBody = String(body || "").trim();
   const normalizedActionLabel = String(actionLabel || "").trim();
   const normalizedActionUrl = String(actionUrl || "").trim();
+  const normalizedAndroidActionUrl =
+    String(androidActionUrl || actionUrl || DEFAULT_ANDROID_STORE_URL).trim();
+  const normalizedIosActionUrl =
+    String(iosActionUrl || DEFAULT_IOS_STORE_URL).trim();
 
   if (!normalizedTitle || !normalizedBody) {
     throw new HttpsError("invalid-argument", "Başlık ve mesaj gereklidir");
@@ -470,6 +479,17 @@ exports.createAdminBroadcast = onCall(async (request) => {
 
   if (normalizedActionUrl && !isValidHttpUrl(normalizedActionUrl)) {
     throw new HttpsError("invalid-argument", "Geçersiz bağlantı");
+  }
+
+  if (
+    normalizedAndroidActionUrl &&
+    !isValidHttpUrl(normalizedAndroidActionUrl)
+  ) {
+    throw new HttpsError("invalid-argument", "Geçersiz Android bağlantısı");
+  }
+
+  if (normalizedIosActionUrl && !isValidHttpUrl(normalizedIosActionUrl)) {
+    throw new HttpsError("invalid-argument", "Geçersiz iOS bağlantısı");
   }
 
   const parsedDurationDays = Number(durationDays || 0);
@@ -489,6 +509,8 @@ exports.createAdminBroadcast = onCall(async (request) => {
     body: normalizedBody,
     actionLabel: normalizedActionLabel,
     actionUrl: normalizedActionUrl,
+    androidActionUrl: normalizedAndroidActionUrl,
+    iosActionUrl: normalizedIosActionUrl,
     active: true,
     showOnOpen: showOnOpen !== false,
     sendPush: sendPush === true,
@@ -514,6 +536,8 @@ exports.createAdminBroadcast = onCall(async (request) => {
           type: "admin_broadcast",
           broadcastId: broadcastRef.id,
           actionUrl: normalizedActionUrl,
+          androidActionUrl: normalizedAndroidActionUrl,
+          iosActionUrl: normalizedIosActionUrl,
           read: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
