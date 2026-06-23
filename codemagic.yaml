@@ -448,7 +448,7 @@ workflows:
         script: |
           flutter build ipa \
             --release \
-            --build-number=$CM_BUILD_ID \
+            --build-number=$CM_BUILD_NUMBER \
             --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
