@@ -90,8 +90,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _nearbyFoodService = NearbyFoodService();
     _loadLocation();
     _claimDailyBonusSecure();
-    _checkForAppUpdate();
-    _checkForAdminBroadcast();
+    _showStartupDialogs();
+  }
+
+  Future<void> _showStartupDialogs() async {
+    await _checkForAdminBroadcast();
+    await _checkForAppUpdate();
   }
 
   Future<void> _checkForAppUpdate() async {
@@ -127,38 +131,109 @@ class _HomeScreenState extends State<HomeScreen> {
         return;
       }
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _showAdminBroadcastDialog(broadcast);
-        }
-      });
+      await _showAdminBroadcastDialog(broadcast);
     } catch (_) {}
   }
 
   Future<void> _showAdminBroadcastDialog(AdminBroadcast broadcast) async {
     final actionUrl = broadcast.platformActionUrl;
-    final selectedAction = await showDialog<String>(
+    final selectedAction = await showModalBottomSheet<String>(
       context: context,
-      barrierDismissible: false,
+      isDismissible: false,
+      enableDrag: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(broadcast.title),
-          content: Text(broadcast.body),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, 'later'),
-              child: const Text('Daha Sonra'),
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: MediaQuery.of(dialogContext).viewInsets.bottom + 16,
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, 'dismiss'),
-              child: const Text('Bir Daha Gösterme'),
-            ),
-            if (broadcast.actionLabel != null && actionUrl != null)
-              ElevatedButton(
-                onPressed: () => Navigator.pop(dialogContext, 'action'),
-                child: Text(broadcast.actionLabel!),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.14),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-          ],
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFE3C2),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.campaign_outlined,
+                          color: Color(0xFFFF7700),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          broadcast.title,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text(
+                    broadcast.body,
+                    style: const TextStyle(
+                      height: 1.45,
+                      color: Color(0xFF4F453B),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  if (broadcast.actionLabel != null && actionUrl != null)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(dialogContext, 'action'),
+                        child: Text(broadcast.actionLabel!),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, 'later'),
+                          child: const Text('Daha Sonra'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () =>
+                              Navigator.pop(dialogContext, 'dismiss'),
+                          child: const Text('Bir Daha Gösterme'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
         );
       },
     );
