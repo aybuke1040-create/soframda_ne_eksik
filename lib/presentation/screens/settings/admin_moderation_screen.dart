@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/core/utils/text_utils.dart';
+import 'package:soframda_ne_eksik/presentation/screens/settings/admin_broadcast_screen.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 
 class AdminModerationScreen extends StatefulWidget {
@@ -207,6 +208,20 @@ class _AdminModerationScreenState extends State<AdminModerationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin Paneli'),
+        actions: [
+          IconButton(
+            tooltip: 'Toplu bildirim gönder',
+            icon: const Icon(Icons.campaign_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AdminBroadcastScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [

@@ -21,11 +21,13 @@ import 'package:soframda_ne_eksik/presentation/screens/requests/all_active_reque
 import 'package:soframda_ne_eksik/presentation/screens/requests/open_requests_screen.dart';
 import 'package:soframda_ne_eksik/presentation/widgets/credit_badge.dart';
 import 'package:soframda_ne_eksik/presentation/widgets/food_request_card.dart';
+import 'package:soframda_ne_eksik/services/admin_broadcast_service.dart';
 import 'package:soframda_ne_eksik/services/app_update_service.dart';
 import 'package:soframda_ne_eksik/services/app_share_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/moderation_service.dart';
 import 'package:soframda_ne_eksik/services/nearby_food_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -44,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isLoading = true;
   bool isFeaturedMode = false;
   bool _updateChecked = false;
+  bool _broadcastChecked = false;
 
   bool _isTablet(BuildContext context) {
     return MediaQuery.of(context).size.shortestSide >= 600;
@@ -88,6 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadLocation();
     _claimDailyBonusSecure();
     _checkForAppUpdate();
+    _checkForAdminBroadcast();
   }
 
   Future<void> _checkForAppUpdate() async {
@@ -108,6 +112,61 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       });
     } catch (_) {}
+  }
+
+  Future<void> _checkForAdminBroadcast() async {
+    if (_broadcastChecked) {
+      return;
+    }
+    _broadcastChecked = true;
+
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 900));
+      final broadcast = await AdminBroadcastService().getPendingBroadcast();
+      if (broadcast == null || !mounted) {
+        return;
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showAdminBroadcastDialog(broadcast);
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _showAdminBroadcastDialog(AdminBroadcast broadcast) async {
+    final shouldOpenAction = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(broadcast.title),
+          content: Text(broadcast.body),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Tamam'),
+            ),
+            if (broadcast.actionLabel != null && broadcast.actionUrl != null)
+              ElevatedButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(broadcast.actionLabel!),
+              ),
+          ],
+        );
+      },
+    );
+
+    await AdminBroadcastService().dismiss(broadcast.id);
+
+    final actionUrl = broadcast.actionUrl;
+    if (shouldOpenAction == true && actionUrl != null && actionUrl.isNotEmpty) {
+      final uri = Uri.tryParse(actionUrl);
+      if (uri != null) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
   }
 
   Future<void> _claimDailyBonusSecure() async {
@@ -376,8 +435,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            context.t('Mahallenin Ortak Mutfağı',
-                'The Neighborhood Shared Kitchen'),
+            context.t(
+                'Mahallenin Ortak Mutfağı', 'The Neighborhood Shared Kitchen'),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 22,

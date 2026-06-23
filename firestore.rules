@@ -44,6 +44,13 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid in chatData.users;
     }
 
+    function chatIdLooksAccessible(chatId) {
+      return isSignedIn() && (
+        chatId.matches('^' + request.auth.uid + '_[^_]+_.+$') ||
+        chatId.matches('^[^_]+_' + request.auth.uid + '_.+$')
+      );
+    }
+
     function protectedRequestFieldsUnchanged() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
         'ownerId',
@@ -153,8 +160,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /admin_broadcasts/{broadcastId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     match /chats/{chatId} {
-      allow read: if isChatParticipant(resource.data);
+      allow read: if (resource != null && isChatParticipant(resource.data)) ||
+        (resource == null && chatIdLooksAccessible(chatId));
       allow create: if isSignedIn() &&
         request.resource.data.keys().hasOnly([
           'users',

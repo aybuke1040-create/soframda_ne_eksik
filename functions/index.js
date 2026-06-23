@@ -20,6 +20,8 @@ const MONTHLY_SHARE_BONUS = 10;
 const PRIVATE_CONTEXT_DOC_ID = "context";
 const READY_FOOD_LIFETIME_DAYS = 2;
 const DEFAULT_REQUEST_LIFETIME_DAYS = 7;
+const ADMIN_BROADCAST_MAX_DURATION_DAYS = 30;
+const ADMIN_BROADCAST_DEFAULT_DURATION_DAYS = 14;
 const APP_PACKAGE_NAME = "com.benyaparim.app";
 const APP_BUNDLE_ID = "com.benyaparim.app";
 const APPLE_VERIFY_RECEIPT_PRODUCTION_URL =
@@ -430,6 +432,111 @@ exports.claimMonthlyShareReward = onCall(async (request) => {
       credit: currentCredit + MONTHLY_SHARE_BONUS,
     };
   });
+});
+
+exports.createAdminBroadcast = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  await assertAdminUser(uid);
+
+  const {
+    title,
+    body,
+    actionLabel,
+    actionUrl,
+    showOnOpen,
+    sendPush,
+    durationDays,
+  } = request.data || {};
+
+  const normalizedTitle = String(title || "").trim();
+  const normalizedBody = String(body || "").trim();
+  const normalizedActionLabel = String(actionLabel || "").trim();
+  const normalizedActionUrl = String(actionUrl || "").trim();
+
+  if (!normalizedTitle || !normalizedBody) {
+    throw new HttpsError("invalid-argument", "Başlık ve mesaj gereklidir");
+  }
+
+  if (normalizedTitle.length > 80 || normalizedBody.length > 240) {
+    throw new HttpsError(
+        "invalid-argument",
+        "Başlık veya mesaj çok uzun",
+    );
+  }
+
+  if (normalizedActionUrl && !isValidHttpUrl(normalizedActionUrl)) {
+    throw new HttpsError("invalid-argument", "Geçersiz bağlantı");
+  }
+
+  const parsedDurationDays = Number(durationDays || 0);
+  const safeDurationDays = Number.isInteger(parsedDurationDays) ?
+    Math.max(
+        1,
+        Math.min(parsedDurationDays, ADMIN_BROADCAST_MAX_DURATION_DAYS),
+    ) :
+    ADMIN_BROADCAST_DEFAULT_DURATION_DAYS;
+  const expiresAt = admin.firestore.Timestamp.fromDate(
+      new Date(Date.now() + safeDurationDays * 24 * 60 * 60 * 1000),
+  );
+
+  const broadcastRef = db.collection("admin_broadcasts").doc();
+  await broadcastRef.set({
+    title: normalizedTitle,
+    body: normalizedBody,
+    actionLabel: normalizedActionLabel,
+    actionUrl: normalizedActionUrl,
+    active: true,
+    showOnOpen: showOnOpen !== false,
+    sendPush: sendPush === true,
+    createdBy: uid,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAt,
+  });
+
+  let notificationCount = 0;
+  if (sendPush === true) {
+    const usersSnapshot = await db.collection("users").get();
+
+    for (let start = 0; start < usersSnapshot.docs.length; start += 450) {
+      const batch = db.batch();
+      const chunk = usersSnapshot.docs.slice(start, start + 450);
+
+      for (const userDoc of chunk) {
+        const notificationRef = db.collection("notifications").doc();
+        batch.set(notificationRef, {
+          receiverId: userDoc.id,
+          title: normalizedTitle,
+          body: normalizedBody,
+          type: "admin_broadcast",
+          broadcastId: broadcastRef.id,
+          actionUrl: normalizedActionUrl,
+          read: false,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        notificationCount += 1;
+      }
+
+      if (chunk.length) {
+        await batch.commit();
+      }
+    }
+  }
+
+  logger.info("Admin broadcast created", {
+    broadcastId: broadcastRef.id,
+    createdBy: uid,
+    notificationCount,
+  });
+
+  return {
+    success: true,
+    broadcastId: broadcastRef.id,
+    notificationCount,
+  };
 });
 
 exports.verifyAndGrantAndroidPurchase = onCall(async (request) => {
@@ -1848,6 +1955,30 @@ async function getModerationAdminUserIds() {
   }
 
   return [...adminIds];
+}
+
+async function assertAdminUser(userId) {
+  const normalizedUserId = String(userId || "").trim();
+  if (!normalizedUserId) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  const adminUserIds = await getModerationAdminUserIds();
+  if (!adminUserIds.includes(normalizedUserId)) {
+    throw new HttpsError(
+        "permission-denied",
+        "Bu işlemi yalnızca yöneticiler yapabilir",
+    );
+  }
+}
+
+function isValidHttpUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    return url.protocol === "https:" || url.protocol === "http:";
+  } catch (error) {
+    return false;
+  }
 }
 
 async function notifyModerationAdmins({
