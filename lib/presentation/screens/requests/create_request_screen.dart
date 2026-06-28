@@ -5,9 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:soframda_ne_eksik/core/utils/content_moderation_utils.dart';
+import 'package:soframda_ne_eksik/core/utils/location_utils.dart';
 import 'package:soframda_ne_eksik/core/utils/request_visibility_utils.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
@@ -158,7 +158,7 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
           ? (userData['name'] as String).trim()
           : 'Kullanıcı';
 
-      final position = await Geolocator.getCurrentPosition();
+      final position = await getUserLocation();
       final geo = GeoFirePoint(GeoPoint(position.latitude, position.longitude));
 
       final requestRef = _isEditing
@@ -249,10 +249,19 @@ class _CreateRequestScreenState extends State<CreateRequestScreen> {
         );
         return;
       }
+      if (e is UserLocationException) {
+        await ActionFeedbackService.show(
+          context,
+          title: 'Konum izni gerekli',
+          message: e.message,
+          icon: Icons.location_off_rounded,
+        );
+        return;
+      }
       await ActionFeedbackService.show(
         context,
         title: 'İşlem tamamlanamadı',
-        message: '$e',
+        message: 'İlan yayınlanırken bir sorun oluştu. Lütfen tekrar deneyin.',
         icon: Icons.error_outline_rounded,
       );
     } finally {

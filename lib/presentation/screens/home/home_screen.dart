@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/core/utils/distance_utils.dart';
 import 'package:soframda_ne_eksik/core/utils/location_utils.dart';
@@ -27,6 +29,7 @@ import 'package:soframda_ne_eksik/services/app_share_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/moderation_service.dart';
 import 'package:soframda_ne_eksik/services/nearby_food_service.dart';
+import 'package:soframda_ne_eksik/services/notification_permission_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -47,6 +50,9 @@ class _HomeScreenState extends State<HomeScreen> {
   bool isFeaturedMode = false;
   bool _updateChecked = false;
   bool _broadcastChecked = false;
+  bool _showNotificationNudge = false;
+  bool _notificationNudgeBusy = false;
+  AuthorizationStatus? _notificationStatus;
 
   bool _isTablet(BuildContext context) {
     return MediaQuery.of(context).size.shortestSide >= 600;
@@ -91,6 +97,67 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadLocation();
     _claimDailyBonusSecure();
     _showStartupDialogs();
+    _refreshNotificationNudge();
+  }
+
+  Future<void> _refreshNotificationNudge() async {
+    try {
+      final settings = await NotificationPermissionService.getAndSyncSettings();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _notificationStatus = settings.authorizationStatus;
+        _showNotificationNudge =
+            !NotificationPermissionService.isEnabled(settings);
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _handleNotificationNudgeAction() async {
+    if (_notificationNudgeBusy) {
+      return;
+    }
+
+    setState(() {
+      _notificationNudgeBusy = true;
+    });
+
+    try {
+      if (_notificationStatus == AuthorizationStatus.denied) {
+        await Geolocator.openAppSettings();
+        return;
+      }
+
+      final settings = await NotificationPermissionService.requestAndSync();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _notificationStatus = settings.authorizationStatus;
+        _showNotificationNudge =
+            !NotificationPermissionService.isEnabled(settings);
+      });
+
+      final enabled = NotificationPermissionService.isEnabled(settings);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            enabled
+                ? 'Bildirimler açıldı. Yeni teklif ve mesajları kaçırmayacaksın.'
+                : 'Bildirim izni kapalı kaldı. Telefon ayarlarından Ben Yaparım bildirimlerini açabilirsin.',
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _notificationNudgeBusy = false;
+        });
+      }
+    }
   }
 
   Future<void> _showStartupDialogs() async {
@@ -539,6 +606,107 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildNotificationNudgeCard() {
+    if (!_showNotificationNudge) {
+      return const SizedBox.shrink();
+    }
+
+    final isDenied = _notificationStatus == AuthorizationStatus.denied;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF8EF),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFFFD7A8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFE3C2),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.notifications_active_outlined,
+                color: Color(0xFFFF7700),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Teklif ve mesajları kaçırma',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF2F2117),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'İlanına teklif geldiğinde veya biri mesaj attığında anında haber verelim.',
+                    style: TextStyle(
+                      height: 1.35,
+                      color: Color(0xFF6E6253),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _notificationNudgeBusy
+                            ? null
+                            : _handleNotificationNudgeAction,
+                        icon: Icon(
+                          isDenied
+                              ? Icons.settings_outlined
+                              : Icons.notifications_active_outlined,
+                          size: 18,
+                        ),
+                        label: Text(
+                          _notificationNudgeBusy
+                              ? 'Kontrol ediliyor...'
+                              : (isDenied ? 'Ayarları Aç' : 'Bildirimleri Aç'),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: _notificationNudgeBusy
+                            ? null
+                            : () {
+                                setState(() {
+                                  _showNotificationNudge = false;
+                                });
+                              },
+                        child: const Text('Şimdilik geç'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildServiceGrid() {
     final columns = _serviceColumnCount(context);
 
@@ -841,6 +1009,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 buildHeader(),
+                _buildNotificationNudgeCard(),
                 buildServiceGrid(),
                 buildSectionTitle(),
                 const SizedBox(height: 10),

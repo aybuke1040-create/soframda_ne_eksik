@@ -4,7 +4,7 @@ class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});
 
   static const String supportEmail = 'benyaparimci@gmail.com';
-  static const String instagramHandle = '@soframdaneeksik';
+  static const String instagramHandle = '@benyaparim.app';
   static const String businessHours = 'Hafta ici 09.00 - 18.00';
 
   Widget _infoCard({

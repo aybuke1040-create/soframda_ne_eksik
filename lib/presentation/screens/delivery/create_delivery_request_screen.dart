@@ -271,10 +271,21 @@ class _CreateDeliveryRequestScreenState
         return;
       }
 
+      if (e is UserLocationException) {
+        await ActionFeedbackService.show(
+          context,
+          title: 'Konum izni gerekli',
+          message: e.message,
+          icon: Icons.location_off_rounded,
+        );
+        return;
+      }
+
       await ActionFeedbackService.show(
         context,
         title: 'İşlem tamamlanamadı',
-        message: '$e',
+        message:
+            'Taşıma ilanı yayınlanırken bir sorun oluştu. Lütfen tekrar deneyin.',
         icon: Icons.error_outline_rounded,
       );
     } finally {

@@ -259,6 +259,28 @@ class _CreateDesignRequestScreenState extends State<CreateDesignRequestScreen> {
             : 'Organizasyon ilanı yayına alındı.',
         icon: Icons.check_circle_outline_rounded,
       );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      if (e is UserLocationException) {
+        await ActionFeedbackService.show(
+          context,
+          title: 'Konum izni gerekli',
+          message: e.message,
+          icon: Icons.location_off_rounded,
+        );
+        return;
+      }
+
+      await ActionFeedbackService.show(
+        context,
+        title: 'İşlem tamamlanamadı',
+        message:
+            'Organizasyon ilanı yayınlanırken bir sorun oluştu. Lütfen tekrar deneyin.',
+        icon: Icons.error_outline_rounded,
+      );
     } finally {
       if (mounted) {
         setState(() => isSubmitting = false);

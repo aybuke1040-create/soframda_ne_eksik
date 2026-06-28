@@ -12,6 +12,7 @@ import 'package:soframda_ne_eksik/core/localization/app_locale_controller.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/core/utils/text_utils.dart';
 import 'package:soframda_ne_eksik/firebase_options.dart';
+import 'package:soframda_ne_eksik/services/notification_permission_service.dart';
 
 import 'core/auth_wrapper.dart';
 import 'core/utils/location_utils.dart';
@@ -53,14 +54,19 @@ Future<void> _configureNotifications() async {
   try {
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+    NotificationSettings? permissionSettings;
     if (Platform.isIOS || Platform.isMacOS) {
-      await FirebaseMessaging.instance.requestPermission(
+      permissionSettings = await FirebaseMessaging.instance.requestPermission(
         alert: true,
         badge: true,
         sound: true,
       );
     } else if (Platform.isAndroid) {
-      await FirebaseMessaging.instance.requestPermission();
+      permissionSettings = await FirebaseMessaging.instance.requestPermission();
+    }
+
+    if (permissionSettings != null) {
+      await NotificationPermissionService.syncSettings(permissionSettings);
     }
 
     const android = AndroidInitializationSettings('ic_notification');
@@ -204,14 +210,26 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _syncUserPushContext(User user) async {
-    final token = await FirebaseMessaging.instance.getToken();
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+    final notificationsEnabled =
+        NotificationPermissionService.isEnabled(settings);
+    final token = notificationsEnabled
+        ? await FirebaseMessaging.instance.getToken()
+        : null;
 
     final updates = <String, dynamic>{
+      'notificationsEnabled': notificationsEnabled,
+      'notificationAuthorizationStatus':
+          NotificationPermissionService.statusName(
+              settings.authorizationStatus),
+      'notificationStatusUpdatedAt': FieldValue.serverTimestamp(),
       'pushUpdatedAt': FieldValue.serverTimestamp(),
     };
 
     if (token != null && token.isNotEmpty) {
       updates['fcmToken'] = token;
+    } else {
+      updates['fcmToken'] = FieldValue.delete();
     }
 
     try {

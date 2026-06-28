@@ -1,11 +1,10 @@
-﻿import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
+import 'package:soframda_ne_eksik/services/notification_permission_service.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -21,14 +20,6 @@ class _NotificationSettingsScreenState
   bool _isLoading = true;
   bool _isSaving = false;
 
-  DocumentReference<Map<String, dynamic>> _privateContextRef(String userId) {
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('private')
-        .doc('context');
-  }
-
   @override
   void initState() {
     super.initState();
@@ -36,7 +27,7 @@ class _NotificationSettingsScreenState
   }
 
   Future<void> _loadSettings() async {
-    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+    final settings = await NotificationPermissionService.getAndSyncSettings();
 
     if (!mounted) {
       return;
@@ -54,33 +45,7 @@ class _NotificationSettingsScreenState
     });
 
     try {
-      final settings = await FirebaseMessaging.instance.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-      );
-
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final token = await FirebaseMessaging.instance.getToken();
-        if (token != null && token.isNotEmpty) {
-          final batch = FirebaseFirestore.instance.batch();
-          batch.set(_privateContextRef(user.uid), {
-            'fcmToken': token,
-            'pushUpdatedAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-          batch.set(
-            FirebaseFirestore.instance.collection('users').doc(user.uid),
-            {
-              'fcmToken': FieldValue.delete(),
-              'pushUpdatedAt': FieldValue.delete(),
-            },
-            SetOptions(merge: true),
-          );
-          await batch.commit();
-        }
-      }
+      final settings = await NotificationPermissionService.requestAndSync();
 
       if (!mounted) {
         return;
@@ -224,5 +189,3 @@ class _NotificationSettingsScreenState
     );
   }
 }
-
-
