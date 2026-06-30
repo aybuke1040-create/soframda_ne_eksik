@@ -118,7 +118,9 @@ class _LoginScreenState extends State<LoginScreen> {
         await _auth.login(email, password);
       }
     } catch (error) {
-      _showMessage(_auth.mapAuthError(error));
+      _showMessage(_isEmailRegister
+          ? _auth.mapAuthError(error)
+          : _auth.mapEmailLoginError(error));
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -215,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
         smsCode: smsCode,
       );
     } catch (error) {
-      _showMessage(_auth.mapAuthError(error));
+      _showMessage(_auth.mapPhoneAuthError(error));
     } finally {
       if (mounted) {
         setState(() => _loading = false);

@@ -245,4 +245,51 @@ class AuthService {
     return 'Giriş işlemi tamamlanamadı. İnternet bağlantını ve bilgilerini '
         'kontrol edip tekrar dene.';
   }
+
+  String mapEmailLoginError(Object error) {
+    if (error is FirebaseAuthException) {
+      switch (error.code) {
+        case 'user-not-found':
+        case 'wrong-password':
+        case 'invalid-credential':
+          return 'Bu e-posta ve şifreyle eşleşen kayıtlı bir hesap bulunamadı. '
+              'Bilgilerini kontrol et veya hesabın yoksa "Kaydol" seçeneğini kullan.';
+        default:
+          return mapAuthError(error);
+      }
+    }
+
+    return mapAuthError(error);
+  }
+
+  String mapPhoneAuthError(Object error) {
+    if (error is FirebaseAuthException) {
+      final message = (error.message ?? '').toLowerCase();
+
+      if (message.contains('valid app identifier') ||
+          message.contains('play integrity') ||
+          message.contains('recaptcha')) {
+        return 'Telefon doğrulaması bu test ortamında başlatılamadı. '
+            'Android veya iOS cihazda tekrar dene ya da e-posta seçeneğiyle devam et.';
+      }
+
+      switch (error.code) {
+        case 'invalid-credential':
+        case 'invalid-verification-id':
+          return 'Telefon doğrulama oturumu geçersiz görünüyor. Yeni SMS kodu isteyip tekrar dene.';
+        case 'invalid-verification-code':
+          return 'SMS doğrulama kodu hatalı görünüyor. Kodu kontrol et veya yeni kod iste.';
+        case 'captcha-check-failed':
+        case 'app-not-authorized':
+        case 'missing-client-identifier':
+          return 'Telefonla giriş bu Chrome test ortamında tamamlanamadı. '
+              'Firebase web yetkilendirmesi veya reCAPTCHA ayarı gerekebilir. '
+              'Sürüm testi için Android/iOS cihazda dene.';
+        default:
+          return mapAuthError(error);
+      }
+    }
+
+    return mapAuthError(error);
+  }
 }

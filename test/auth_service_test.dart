@@ -35,5 +35,24 @@ void main() {
       expect(message, isNot(contains('Internal technical failure')));
       expect(message, contains('Giriş işlemi tamamlanamadı'));
     });
+
+    test('telefon invalid-credential hatasini sms oturumu olarak aciklar', () {
+      final message = authService.mapPhoneAuthError(
+        FirebaseAuthException(code: 'invalid-credential'),
+      );
+
+      expect(message, contains('Telefon doğrulama oturumu'));
+      expect(message, contains('Yeni SMS kodu'));
+    });
+
+    test('eposta invalid-credential hatasini kayit yonlendirmesiyle aciklar',
+        () {
+      final message = authService.mapEmailLoginError(
+        FirebaseAuthException(code: 'invalid-credential'),
+      );
+
+      expect(message, contains('e-posta ve şifreyle'));
+      expect(message, contains('Kaydol'));
+    });
   });
 }

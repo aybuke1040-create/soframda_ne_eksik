@@ -100,6 +100,7 @@ function localSeoChecks(config) {
   failed += result("Manifest bağlı", layout.includes("manifest"));
   failed += result("Organization schema var", page.includes('"@type": "Organization"'));
   failed += result("WebSite schema var", page.includes('"@type": "WebSite"'));
+  failed += result("FAQPage schema var", page.includes('"@type": "FAQPage"'));
   failed += result("Robots sitemap bildiriyor", robots.includes("sitemap"));
   failed += result("Robots login/messages engelliyor", robots.includes("/login") && robots.includes("/messages"));
   failed += result("Sitemap kritik rotaları içeriyor", sitemap.includes("/download") && sitemap.includes("/privacy") && sitemap.includes("/support"));

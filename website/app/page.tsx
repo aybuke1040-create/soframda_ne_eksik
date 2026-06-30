@@ -3,7 +3,7 @@ import Link from "next/link";
 import { DownloadButtons } from "@/components/DownloadButtons";
 import { PhoneMockup } from "@/components/PhoneMockup";
 import { SectionIntro } from "@/components/SectionIntro";
-import { categories, siteConfig, steps, trustPoints } from "@/components/site-config";
+import { categories, faqs, siteConfig, steps, trustPoints } from "@/components/site-config";
 
 const quickHighlights = ["Ücretsiz kayıt", "Hızlı teklif akışı", "Mahallene yakın hizmetler"] as const;
 
@@ -32,6 +32,19 @@ export default function HomePage() {
       "Mahallendeki yemek, ikram ve organizasyon işleri için ilan ver, teklif al ve mesajlaş."
   };
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer
+      }
+    }))
+  };
+
   return (
     <div className="pb-20">
       <script
@@ -41,6 +54,10 @@ export default function HomePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
 
       <section className="mesh overflow-hidden">
@@ -215,6 +232,22 @@ export default function HomePage() {
             <article key={point.title} className="glass-card rounded-4xl p-6">
               <h3 className="text-2xl font-black text-ink">{point.title}</h3>
               <p className="mt-3 text-sm leading-7 text-slate-600">{point.copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="sss" className="section-shell py-16">
+        <SectionIntro
+          eyebrow="Sıkça Sorulan Sorular"
+          title="Ben Yaparım hakkında merak edilen temel cevaplar."
+          copy="İlan açma, teklif alma, komisyonsuz kullanım, güvenli mesajlaşma, yakın çevre bildirimleri ve kredi sistemiyle ilgili en önemli bilgileri sade şekilde topladık."
+        />
+        <div className="mt-8 grid gap-4 lg:grid-cols-2">
+          {faqs.map((faq) => (
+            <article key={faq.question} className="glass-card rounded-4xl p-6">
+              <h3 className="text-lg font-black text-ink">{faq.question}</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{faq.answer}</p>
             </article>
           ))}
         </div>

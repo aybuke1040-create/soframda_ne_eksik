@@ -9,6 +9,7 @@ import 'package:soframda_ne_eksik/presentation/screens/settings/admin_moderation
 import 'package:soframda_ne_eksik/presentation/screens/settings/blocked_users_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/community_terms_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/contact_us_screen.dart';
+import 'package:soframda_ne_eksik/presentation/screens/settings/faq_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/kvkk_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/location_settings_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/settings/notification_settings_screen.dart';
@@ -406,6 +407,20 @@ class SettingsScreen extends StatelessWidget {
             },
           ),
           _adminTile(context),
+          _tile(
+            icon: Icons.help_outline_rounded,
+            title: 'Sıkça Sorulan Sorular',
+            subtitle:
+                'İlan, teklif, kredi, ödeme ve güvenlik hakkında cevaplar',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const FaqScreen(),
+                ),
+              );
+            },
+          ),
           _tile(
             icon: Icons.support_agent,
             title: context.t('Bize Ula\u015f\u0131n', 'Contact Us'),

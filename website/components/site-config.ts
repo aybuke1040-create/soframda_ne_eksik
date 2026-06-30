@@ -71,23 +71,53 @@ export const trustPoints = [
 
 export const faqs = [
   {
-    question: "Hesabıma giremiyorum, ne yapmalıyım?",
+    question: "Ben Yaparım nedir ve nasıl çalışır?",
     answer:
-      "Giriş, doğrulama veya hesap bilgileriyle ilgili bir sorun yaşıyorsan destek ekibimize yazabilir ve kullandığın iletişim bilgisini paylaşabilirsin."
+      "Ben Yaparım; hizmet arayan kullanıcılarla evden üretim yapan, yerel hizmet sunan veya emeğiyle iş almak isteyen kişileri buluşturan mobil pazaryeri uygulamasıdır. Kullanıcı ilan açar, yakınındaki hizmet verenlerden teklif alır, teklifleri karşılaştırır ve süreci uygulama içi güvenli mesajlaşma ile yönetir."
   },
   {
-    question: "Teklifler neden gelmiyor?",
+    question: "Ben Yaparım uygulamasının diğer hizmet ve nakliye uygulamalarından farkı nedir?",
     answer:
-      "İlanın yeterince açık değilse ya da konum bilgisi eksikse görünürlüğün düşebilir. Daha net bir açıklama ve doğru bilgilerle daha hızlı dönüş alırsın."
+      "Ben Yaparım büyük ve karmaşık işler yerine yakın çevredeki pratik ihtiyaçlara odaklanır: ev yemeği, ikram, küçük taşıma, organizasyon ve tasarım gibi yerel hizmetler. Platform komisyon almaz; amaç işi en yakındaki doğru kişiyle hızlı ve zahmetsiz buluşturmaktır."
   },
   {
-    question: "Uygunsuz içerik veya kötüye kullanım gördüğümde ne yapabilirim?",
+    question: "Ben Yaparım uygulaması üzerinden ne tür ilanlar açabilirim?",
     answer:
-      "Uygulama içinden kullanıcıyı engelleyebilir, kullanıcıyı veya içeriği şikayet edebilir ve destek ekibimize ulaşabilirsin. Raporlanan içerikleri en geç 24 saat içinde inceler, gerekirse kaldırır ve ihlal eden hesapları kapatırız."
+      "Ev yemeği, doğum günü pastası, davet ikramlığı, toplu yemek, hazır yemek, organizasyon, nişan veya kutlama süslemesi, açılış konsepti, küçük hacimli taşıma, parça eşya taşıma ve benzeri yerel hizmet ihtiyaçları için ilan oluşturabilirsiniz."
   },
   {
-    question: "Bildirimler gelmiyor, ne kontrol etmeliyim?",
+    question: "Evden yemek veya üretim yapan biri olarak neden bu uygulamayı indirmeliyim?",
     answer:
-      "Telefonundaki bildirim izinlerini ve uygulama içi ayarları kontrol et. Sorun sürerse destek ekibimize ulaşabilirsin."
+      "Yakın çevredeki potansiyel müşterilere görünür olursunuz, profil puanı ve yorumlarla güven inşa edersiniz, teklif ve mesajları tek yerden yönetirsiniz. Ben Yaparım komisyon almadığı için kazancınız doğrudan size kalır."
+  },
+  {
+    question: "Uygulamada ödeme süreci nasıl işliyor, banka veya kart bilgisi istenir mi?",
+    answer:
+      "Ben Yaparım iş bedellerinden komisyon almaz ve kullanıcıların banka hesap bilgisi, kart şifresi veya ödeme bilgilerini istemez. Hizmet bedeli ve ödeme yöntemi hizmet alan ile hizmet veren arasında platform dışında kararlaştırılır."
+  },
+  {
+    question: "Uygulamayı kullanırken telefon numaram diğer kullanıcılar tarafından görülür mü?",
+    answer:
+      "Hayır. Telefon numaranız ve kişisel iletişim bilgileriniz diğer kullanıcılara gösterilmez. İlan, teklif ve hizmet detaylarını uygulama içi güvenli mesajlaşma üzerinden paylaşabilirsiniz."
+  },
+  {
+    question: "Yakın çevremdeki ilanlardan nasıl haberdar olabilirim?",
+    answer:
+      "Konum servisleri ve bildirimler açık olduğunda yakınınızdaki yeni ilanlar, teklifler ve mesajlar için bildirim alabilirsiniz. Böylece mahallenizdeki güncel hizmet taleplerini ve fırsatları kaçırmazsınız."
+  },
+  {
+    question: "Uygulama içi kredileri nasıl kazanabilirim ve kredi satın alabilir miyim?",
+    answer:
+      "Yeni kullanıcılar hoş geldin kredisi alır. Günlük giriş ödülleri, tarif paylaşımı ve uygulama içi etkinliklerle ek kredi kazanabilirsiniz. İsterseniz küçük tutarlı kredi paketleri de satın alabilirsiniz."
+  },
+  {
+    question: "Açılan ilanlar neden belirli bir süre sonra otomatik olarak siliniyor?",
+    answer:
+      "Platformdaki ilanların güncel kalması için süre sınırı vardır. Hazır yemek ve ev yemeği ilanları tazelik amacıyla 2 gün sonra, diğer hizmet ilanları ise genellikle 7 gün sonra otomatik olarak yayından kalkar."
+  },
+  {
+    question: "Ben Yaparım güvenli mi, sorun yaşarsam ne yapabilirim?",
+    answer:
+      "Uygulama içi mesajlaşma, profil puanı, şikayet, engelleme ve moderasyon özellikleri güvenli deneyim için tasarlanmıştır. Uygunsuz içerik, kötüye kullanım veya şüpheli davranış gördüğünüzde kullanıcıyı engelleyebilir, ilanı şikayet edebilir veya destek ekibine ulaşabilirsiniz."
   }
 ] as const;
