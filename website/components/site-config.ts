@@ -7,7 +7,8 @@ export const siteConfig = {
     { href: "/download", label: "Uygulamayı İndir" },
     { href: "/support", label: "Destek" },
     { href: "/terms", label: "Kullanım Koşulları" },
-    { href: "/privacy", label: "Gizlilik" }
+    { href: "/privacy", label: "Gizlilik" },
+    { href: "/#sss", label: "S.S.S." }
   ],
   footerNav: [
     { href: "/terms", label: "Kullanım Koşulları" },
