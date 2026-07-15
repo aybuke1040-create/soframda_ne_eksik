@@ -145,9 +145,13 @@ service cloud.firestore {
             'createdAt',
           ]) &&
           request.resource.data.buyerId == request.auth.uid &&
-          request.resource.data.ownerId ==
-            get(/databases/$(database)/documents/requests/$(requestId)).data.ownerId &&
-          request.resource.data.ownerId != request.auth.uid &&
+          (
+            !('ownerId' in request.resource.data) ||
+            request.resource.data.ownerId ==
+              get(/databases/$(database)/documents/requests/$(requestId)).data.ownerId
+          ) &&
+          get(/databases/$(database)/documents/requests/$(requestId)).data.ownerId !=
+            request.auth.uid &&
           request.resource.data.status == 'pending' &&
           request.resource.data.title is string &&
           request.resource.data.createdAt == request.time;
