@@ -109,7 +109,8 @@ exports.notifyNearbyUsersForNewRequest = onDocumentCreated(
     }
 
     const usersSnapshot = await db.collection("users").get();
-    const batch = db.batch();
+    let batch = db.batch();
+    let batchWriteCount = 0;
     let notifyCount = 0;
 
     for (const userDoc of usersSnapshot.docs) {
@@ -150,9 +151,16 @@ exports.notifyNearbyUsersForNewRequest = onDocumentCreated(
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
       notifyCount += 1;
+      batchWriteCount += 1;
+
+      if (batchWriteCount >= 450) {
+        await batch.commit();
+        batch = db.batch();
+        batchWriteCount = 0;
+      }
     }
 
-    if (notifyCount > 0) {
+    if (batchWriteCount > 0) {
       await batch.commit();
     }
   },
@@ -1406,6 +1414,8 @@ exports.sendMessage = onCall(async (request) => {
     );
   }
 
+  return sendMessageAtomically({uid, chatId, trimmedText});
+
   const otherUserId = users.find((userId) => userId !== uid) || "";
   if (otherUserId) {
     const blockedBetweenUsers = await isBlockedBetweenUsers(uid, otherUserId);
@@ -1531,6 +1541,172 @@ exports.sendMessage = onCall(async (request) => {
     cost: shouldChargeFirstMessage ? FIRST_MESSAGE_COST : 0,
   };
 });
+
+async function sendMessageAtomically({uid, chatId, trimmedText}) {
+  const chatRef = db.collection("chats").doc(chatId);
+  const userRef = db.collection("users").doc(uid);
+  const initialChatSnap = await chatRef.get();
+
+  if (!initialChatSnap.exists) {
+    throw new HttpsError("not-found", "Chat bulunamadi");
+  }
+
+  const initialChatData = initialChatSnap.data() || {};
+  const initialUsers = Array.isArray(initialChatData.users) ?
+    initialChatData.users : [];
+  if (!initialUsers.includes(uid)) {
+    throw new HttpsError("permission-denied", "Chat participant required");
+  }
+
+  const otherUserId = initialUsers.find((userId) => userId !== uid) || "";
+  if (otherUserId) {
+    const blockedBetweenUsers = await isBlockedBetweenUsers(uid, otherUserId);
+    if (blockedBetweenUsers) {
+      throw new HttpsError(
+          "failed-precondition",
+          "Bu kullanici ile etkilesim sinirlandirildi",
+      );
+    }
+  }
+
+  const messageRef = chatRef.collection("messages").doc();
+  const notificationRefs = initialUsers
+      .filter((userId) => userId !== uid)
+      .map((userId) => ({
+        userId,
+        ref: db.collection("notifications").doc(),
+      }));
+
+  const result = await db.runTransaction(async (tx) => {
+    const [chatSnap, userSnap] = await Promise.all([
+      tx.get(chatRef),
+      tx.get(userRef),
+    ]);
+
+    if (!chatSnap.exists) {
+      throw new HttpsError("not-found", "Chat bulunamadi");
+    }
+
+    const chatData = chatSnap.data() || {};
+    const users = Array.isArray(chatData.users) ? chatData.users : [];
+    if (!users.includes(uid)) {
+      throw new HttpsError("permission-denied", "Chat participant required");
+    }
+
+    const requestId = String(chatData.requestId || "");
+    let requestOwnerId = "";
+    let requestType = "";
+    if (requestId) {
+      const requestSnap = await tx.get(db.collection("requests").doc(requestId));
+      const requestData = requestSnap.data() || {};
+      requestOwnerId = String(requestData.ownerId || "");
+      requestType = String(requestData.type || requestData.requestType || "");
+    }
+
+    const currentCredit = getCreditValue(userSnap.data());
+    const alreadyPaid = Boolean(
+        chatData.firstMessagePaidUsers &&
+        chatData.firstMessagePaidUsers[uid] === true,
+    );
+    const senderIsOwner = requestOwnerId && requestOwnerId === uid;
+    const isReadyFoodAutoStarter =
+      requestType === "ready_food" &&
+      trimmedText === "SipariÅŸ vermek istiyorum.";
+    const shouldChargeFirstMessage =
+      !senderIsOwner && !alreadyPaid && !isReadyFoodAutoStarter;
+
+    if (shouldChargeFirstMessage && currentCredit < FIRST_MESSAGE_COST) {
+      throw new HttpsError(
+          "failed-precondition",
+          "Ilk mesaj icin 10 kredi gerekiyor",
+      );
+    }
+
+    if (shouldChargeFirstMessage) {
+      applyCreditChange(
+          tx,
+          userRef,
+          currentCredit - FIRST_MESSAGE_COST,
+          -FIRST_MESSAGE_COST,
+          "first_message",
+      );
+
+      tx.set(chatRef, {
+        firstMessagePaidUsers: {
+          [uid]: true,
+        },
+      }, {merge: true});
+    }
+
+    tx.set(messageRef, {
+      text: trimmedText,
+      senderId: uid,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    const chatUpdates = {
+      lastMessage: trimmedText,
+      lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    for (const chatUserId of users) {
+      chatUpdates[`deletedFor.${chatUserId}`] =
+        admin.firestore.FieldValue.delete();
+    }
+
+    tx.set(chatRef, chatUpdates, {merge: true});
+
+    const otherUsers = users.filter((userId) => userId !== uid);
+    for (const otherUser of otherUsers) {
+      tx.set(
+          db.collection("user_chats").doc(otherUser).collection("chats").doc(chatId),
+          {
+            chatId,
+            otherUserId: uid,
+            lastMessage: trimmedText,
+            lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          {merge: true},
+      );
+    }
+
+    for (const notification of notificationRefs) {
+      if (!otherUsers.includes(notification.userId)) {
+        continue;
+      }
+
+      tx.set(notification.ref, {
+        receiverId: notification.userId,
+        title: "Yeni mesaj",
+        body: trimmedText,
+        type: "chat_message",
+        requestId,
+        chatId,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+
+    tx.set(
+        db.collection("user_chats").doc(uid).collection("chats").doc(chatId),
+        {
+          chatId,
+          otherUserId: otherUsers[0] || "",
+          lastMessage: trimmedText,
+          lastMessageTime: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        {merge: true},
+    );
+
+    return {charged: shouldChargeFirstMessage};
+  });
+
+  return {
+    success: true,
+    charged: result.charged,
+    cost: result.charged ? FIRST_MESSAGE_COST : 0,
+  };
+}
 
 async function verifyAndroidProductPurchase({packageName, productId, purchaseToken}) {
   const auth = new GoogleAuth({

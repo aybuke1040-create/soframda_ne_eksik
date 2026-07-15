@@ -253,6 +253,7 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                 .doc(currentUserId)
                 .set({
               'buyerId': currentUserId,
+              'ownerId': ownerId,
               'status': 'pending',
               'title': title,
               'createdAt': FieldValue.serverTimestamp(),

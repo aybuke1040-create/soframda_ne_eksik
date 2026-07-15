@@ -65,6 +65,19 @@ service cloud.firestore {
       ]);
     }
 
+    function requestAcceptsReadyFoodOrder(requestId) {
+      return exists(/databases/$(database)/documents/requests/$(requestId)) &&
+        (
+          get(/databases/$(database)/documents/requests/$(requestId)).data.type == 'ready_food' ||
+          get(/databases/$(database)/documents/requests/$(requestId)).data.requestType == 'ready_food' ||
+          get(/databases/$(database)/documents/requests/$(requestId)).data.isReady == true
+        ) &&
+        (
+          !('status' in get(/databases/$(database)/documents/requests/$(requestId)).data) ||
+          get(/databases/$(database)/documents/requests/$(requestId)).data.status in ['open', 'active']
+        );
+    }
+
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSelf(userId) &&
@@ -122,7 +135,22 @@ service cloud.firestore {
           resource.data.ownerId == request.auth.uid
         );
         allow create: if isSignedIn() &&
-          request.resource.data.buyerId == request.auth.uid;
+          orderId == request.auth.uid &&
+          requestAcceptsReadyFoodOrder(requestId) &&
+          request.resource.data.keys().hasOnly([
+            'buyerId',
+            'ownerId',
+            'status',
+            'title',
+            'createdAt',
+          ]) &&
+          request.resource.data.buyerId == request.auth.uid &&
+          request.resource.data.ownerId ==
+            get(/databases/$(database)/documents/requests/$(requestId)).data.ownerId &&
+          request.resource.data.ownerId != request.auth.uid &&
+          request.resource.data.status == 'pending' &&
+          request.resource.data.title is string &&
+          request.resource.data.createdAt == request.time;
         allow update, delete: if false;
       }
     }
