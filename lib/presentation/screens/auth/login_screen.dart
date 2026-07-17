@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _loading = false;
   bool _codeSent = false;
-  bool _useEmailAuth = false;
+  bool _useEmailAuth = true;
   bool _isEmailRegister = false;
   String _verificationId = '';
   int? _resendToken;
@@ -113,7 +113,10 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       if (_isEmailRegister) {
         await _auth.register(email, password);
-        _showMessage('E-posta ile kayıt tamamlandı.');
+        _showMessage(
+          'Doğrulama bağlantısı e-posta adresine gönderildi. '
+          'Gelen kutunu ve spam klasörünü kontrol edip doğruladıktan sonra giriş yapabilirsin.',
+        );
       } else {
         await _auth.login(email, password);
       }
@@ -121,6 +124,23 @@ class _LoginScreenState extends State<LoginScreen> {
       _showMessage(_isEmailRegister
           ? _auth.mapAuthError(error)
           : _auth.mapEmailLoginError(error));
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _continueWithGoogle() async {
+    setState(() => _loading = true);
+
+    try {
+      final user = await _auth.signInWithGoogle();
+      if (user == null) {
+        _showMessage('Google ile giriş iptal edildi.');
+      }
+    } catch (error) {
+      _showMessage(_auth.mapAuthError(error));
     } finally {
       if (mounted) {
         setState(() => _loading = false);
@@ -236,16 +256,17 @@ class _LoginScreenState extends State<LoginScreen> {
       prefixIcon: Icon(icon, color: const Color(0xFF7B4C20)),
       filled: true,
       fillColor: Colors.white.withValues(alpha: 0.92),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide.none,
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: Color(0xFFEAD7BE)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: Color(0xFF7B4C20), width: 1.4),
       ),
     );
@@ -256,7 +277,7 @@ class _LoginScreenState extends State<LoginScreen> {
     required VoidCallback? onPressed,
   }) {
     return SizedBox(
-      height: 58,
+      height: 52,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
@@ -287,6 +308,58 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildAuthDivider({String label = 'veya'}) {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(height: 1, color: const Color(0xFFEAD7BE)),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF7F6A57),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Container(height: 1, color: const Color(0xFFEAD7BE)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGoogleButton() {
+    return SizedBox(
+      height: 52,
+      child: OutlinedButton.icon(
+        onPressed: _loading ? null : _continueWithGoogle,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white.withValues(alpha: 0.92),
+          foregroundColor: const Color(0xFF3F3058),
+          side: const BorderSide(color: Color(0xFFE5D7F8), width: 1.2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(22),
+          ),
+        ),
+        icon: const Icon(
+          Icons.g_mobiledata_rounded,
+          color: Color(0xFF4285F4),
+          size: 28,
+        ),
+        label: const Text(
+          'Google ile Devam Et',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 15,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildModeChip({
     required String title,
     required IconData icon,
@@ -298,7 +371,7 @@ class _LoginScreenState extends State<LoginScreen> {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
           decoration: BoxDecoration(
             color: selected
                 ? const Color(0xFF6E3DB6)
@@ -323,6 +396,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: TextStyle(
                   color: selected ? Colors.white : const Color(0xFF3F3058),
                   fontWeight: FontWeight.w700,
+                  fontSize: 14,
                 ),
               ),
             ],
@@ -339,7 +413,7 @@ class _LoginScreenState extends State<LoginScreen> {
             : 'E-posta ile güvenli giriş yap.')
         : (_codeSent
             ? 'Kod geldi, şimdi doğrulayalım.'
-            : 'Telefon numaranla güvenli şekilde başla.');
+            : 'Telefon ile giriş yap.');
 
     final subtitle = _useEmailAuth
         ? (_isEmailRegister
@@ -347,12 +421,12 @@ class _LoginScreenState extends State<LoginScreen> {
             : 'Sana özel ilan, teklif ve mesaj akışına kaldığın yerden dön.')
         : (_codeSent
             ? 'Telefonuna gelen 6 haneli kodu gir, hesabın hemen açılsın.'
-            : 'Önceliğimiz telefon doğrulaması. İstersen e-posta seçeneğiyle de devam edebilirsin.');
+            : 'SMS doğrulamasını kullanmak istersen telefon numaranı gir.');
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(28),
         gradient: const LinearGradient(
           colors: [
             Color(0xFF6A2FA3),
@@ -373,71 +447,81 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(
-            child: Container(
-              width: 128,
-              height: 128,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 92,
+                height: 92,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.18),
+                  ),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/images/ben_yaparim_logo.png',
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
-              padding: const EdgeInsets.all(14),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(22),
-                child: Image.asset(
-                  'assets/images/ben_yaparim_logo.png',
-                  fit: BoxFit.contain,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'BEN YAPARIM',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 24,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      headline,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        height: 1.18,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 20),
-          const Text(
-            'BEN YAPARIM',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 28,
-              letterSpacing: 0.4,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            headline,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           Text(
             subtitle,
             style: TextStyle(
               color: Colors.white.withValues(alpha: 0.88),
-              fontSize: 14,
-              height: 1.55,
+              fontSize: 13,
+              height: 1.45,
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           Row(
             children: [
-              _buildModeChip(
-                title: 'Telefon',
-                icon: Icons.phone_iphone_rounded,
-                selected: !_useEmailAuth,
-                onTap: () => _switchAuthMode(false),
-              ),
-              const SizedBox(width: 12),
               _buildModeChip(
                 title: 'E-posta',
                 icon: Icons.alternate_email_rounded,
                 selected: _useEmailAuth,
                 onTap: () => _switchAuthMode(true),
+              ),
+              const SizedBox(width: 12),
+              _buildModeChip(
+                title: 'Telefon',
+                icon: Icons.phone_iphone_rounded,
+                selected: !_useEmailAuth,
+                onTap: () => _switchAuthMode(false),
               ),
             ],
           ),
@@ -448,10 +532,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildSurface({required List<Widget> children}) {
     return Container(
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.72),
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(color: const Color(0xFFF0E3D1)),
         boxShadow: [
           BoxShadow(
@@ -492,8 +576,27 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
       const SizedBox(height: 18),
+      if (_isEmailRegister) ...[
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF8EE),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFF0DFC3)),
+          ),
+          child: const Text(
+            'Kayıt sonrası e-posta adresine doğrulama bağlantısı göndereceğiz. '
+            'Bağlantıya bastıktan sonra giriş yapabilirsin.',
+            style: TextStyle(
+              color: Color(0xFF7F6A57),
+              height: 1.45,
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+      ],
       _buildPrimaryButton(
-        label: _isEmailRegister ? 'Kaydol ve Başla' : 'Giriş Yap',
+        label: _isEmailRegister ? 'Kaydol ve Doğrulama Gönder' : 'Giriş Yap',
         onPressed: _loading ? null : _emailAuth,
       ),
       const SizedBox(height: 10),
@@ -538,22 +641,22 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: const Color(0xFFFFF8EE),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: const Color(0xFFF0DFC3)),
           ),
           child: const Text(
-            'Numaranı 5XXXXXXXXX ya da +905XXXXXXXXX formatında girebilirsin. '
-            'SMS alamazsan e-posta seçeneğiyle devam edebilirsin.',
+            'Numaranı 5XXXXXXXXX veya +905XXXXXXXXX formatında girebilirsin. '
+            'SMS alamazsan e-posta ile devam edebilirsin.',
             style: TextStyle(
               color: Color(0xFF7F6A57),
-              height: 1.45,
+              height: 1.4,
             ),
           ),
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 14),
         _buildPrimaryButton(
           label: 'SMS Kodu Gönder',
           onPressed: _loading ? null : _sendCode,
@@ -628,18 +731,24 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 430),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildHeroCard(),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 14),
                     _buildSurface(
-                      children: _useEmailAuth
-                          ? _buildEmailFields()
-                          : _buildPhoneFields(),
+                      children: [
+                        ...(_useEmailAuth
+                            ? _buildEmailFields()
+                            : _buildPhoneFields()),
+                        const SizedBox(height: 12),
+                        _buildAuthDivider(label: 'veya'),
+                        const SizedBox(height: 14),
+                        _buildGoogleButton(),
+                      ],
                     ),
                   ],
                 ),

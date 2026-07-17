@@ -54,5 +54,32 @@ void main() {
       expect(message, contains('e-posta ve şifreyle'));
       expect(message, contains('Kaydol'));
     });
+
+    test('eposta dogrulama gerektiginde Turkce uyari verir', () {
+      final message = authService.mapEmailLoginError(
+        FirebaseAuthException(code: 'email-not-verified'),
+      );
+
+      expect(message, contains('E-posta adresini doğrulaman gerekiyor'));
+      expect(message, contains('spam klasörünü'));
+    });
+
+    test('google giris hatasini kullanici dostu mesaja cevirir', () {
+      final message = authService.mapAuthError(
+        FirebaseAuthException(code: 'google-sign-in-failed'),
+      );
+
+      expect(message, contains('Google ile giriş'));
+      expect(message, contains('telefon/e-posta'));
+    });
+
+    test('eposta dogrulama baglantisi hatasini teknik gostermeden aciklar', () {
+      final message = authService.mapAuthError(
+        FirebaseAuthException(code: 'unauthorized-continue-uri'),
+      );
+
+      expect(message, contains('E-posta doğrulama bağlantısı'));
+      expect(message, contains('biraz sonra tekrar dene'));
+    });
   });
 }

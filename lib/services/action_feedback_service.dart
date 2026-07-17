@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:soframda_ne_eksik/main.dart';
+import 'package:soframda_ne_eksik/core/app_navigator.dart';
 
 class ActionFeedbackService {
   static Future<void> showMessage(

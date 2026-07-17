@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../data/services/auth_service.dart';
 import '../presentation/screens/auth/login_screen.dart';
 import '../presentation/screens/main/main_screen.dart';
 import '../presentation/screens/settings/community_terms_screen.dart';
@@ -20,7 +21,12 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        if (snapshot.hasData) {
+        final user = snapshot.data;
+        if (user != null) {
+          if (AuthService().requiresEmailVerification(user)) {
+            return const LoginScreen();
+          }
+
           return StreamBuilder<bool>(
             stream: ModerationService().watchTermsAccepted(),
             builder: (context, termsSnapshot) {

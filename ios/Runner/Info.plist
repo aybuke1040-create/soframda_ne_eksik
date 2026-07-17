@@ -34,6 +34,8 @@
 	<string>Seçtiğin görselleri uygulama içinde kullanabilmek için fotoğraf arşivine erişiyoruz.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Profiline, ilanlarına ve yemek paylaşımlarına fotoğraf ekleyebilmen için kameraya erişiyoruz.</string>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-8020844869798583~8891549707</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
