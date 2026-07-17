@@ -8,16 +8,17 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_controller.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
+import 'package:soframda_ne_eksik/core/app_navigator.dart';
 import 'package:soframda_ne_eksik/core/utils/text_utils.dart';
 import 'package:soframda_ne_eksik/firebase_options.dart';
 import 'package:soframda_ne_eksik/services/notification_permission_service.dart';
+import 'package:soframda_ne_eksik/services/low_credit_prompt_observer.dart';
 
 import 'core/auth_wrapper.dart';
 import 'core/utils/location_utils.dart';
-
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -47,6 +48,7 @@ Future<void> main() async {
 
   runApp(const MyApp());
 
+  unawaited(MobileAds.instance.initialize());
   unawaited(_configureNotifications());
 }
 
@@ -267,6 +269,7 @@ class _MyAppState extends State<MyApp> {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             navigatorKey: navigatorKey,
+            scaffoldMessengerKey: scaffoldMessengerKey,
             theme: ThemeData(
               snackBarTheme: SnackBarThemeData(
                 behavior: SnackBarBehavior.floating,
@@ -291,7 +294,9 @@ class _MyAppState extends State<MyApp> {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const AuthWrapper(),
+            home: const LowCreditPromptObserver(
+              child: AuthWrapper(),
+            ),
           );
         },
       ),

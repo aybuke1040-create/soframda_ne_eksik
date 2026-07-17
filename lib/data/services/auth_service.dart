@@ -1,18 +1,58 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   AuthService();
 
   static const String _passwordResetUrl =
       'https://benyaparimci.com/reset-password';
+  static const String _emailVerificationUrl =
+      'https://benyaparimci.com/verify-email';
   static const String _appBundleId = 'com.benyaparim.app';
   static const String _phoneFallbackMessage =
       'Dilersen e-posta seçeneğiyle devam edebilir ya da destek için '
       'benyaparimci@gmail.com adresine yazabilirsin.';
 
+  static final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  static Future<void>? _googleSignInInitialization;
+
   FirebaseAuth get _auth => FirebaseAuth.instance;
   FirebaseFirestore get _db => FirebaseFirestore.instance;
+
+  Future<void> _ensureGoogleSignInInitialized() {
+    return _googleSignInInitialization ??= _googleSignIn.initialize();
+  }
+
+  bool _requiresEmailVerification(User user) {
+    return user.email != null &&
+        !user.emailVerified &&
+        user.providerData.any((provider) => provider.providerId == 'password');
+  }
+
+  bool requiresEmailVerification(User user) {
+    return _requiresEmailVerification(user);
+  }
+
+  Future<void> _useTurkishAuthEmails() {
+    return _auth.setLanguageCode('tr');
+  }
+
+  Future<void> _sendVerificationEmail(User user) async {
+    if (!user.emailVerified) {
+      await _useTurkishAuthEmails();
+      final actionCodeSettings = ActionCodeSettings(
+        url:
+            '$_emailVerificationUrl?email=${Uri.encodeComponent(user.email ?? '')}',
+        handleCodeInApp: false,
+        androidPackageName: _appBundleId,
+        androidInstallApp: false,
+        iOSBundleId: _appBundleId,
+      );
+
+      await user.sendEmailVerification(actionCodeSettings);
+    }
+  }
 
   Future<User?> login(String email, String password) async {
     final result = await _auth.signInWithEmailAndPassword(
@@ -22,6 +62,18 @@ class AuthService {
 
     final user = result.user;
     if (user != null) {
+      if (_requiresEmailVerification(user)) {
+        try {
+          await _sendVerificationEmail(user);
+        } on FirebaseAuthException catch (error) {
+          if (error.code != 'too-many-requests') {
+            rethrow;
+          }
+        }
+        await _auth.signOut();
+        throw FirebaseAuthException(code: 'email-not-verified');
+      }
+
       await createUserIfNotExists(user);
     }
 
@@ -36,13 +88,63 @@ class AuthService {
 
     final user = result.user;
     if (user != null) {
-      await createUserIfNotExists(user);
+      try {
+        await createUserIfNotExists(user);
+        await _sendVerificationEmail(user);
+      } finally {
+        await _auth.signOut();
+      }
     }
 
     return user;
   }
 
+  Future<User?> signInWithGoogle() async {
+    await _ensureGoogleSignInInitialized();
+
+    if (!_googleSignIn.supportsAuthenticate()) {
+      throw FirebaseAuthException(
+        code: 'operation-not-allowed',
+        message: 'Google ile giriş bu platformda desteklenmiyor.',
+      );
+    }
+
+    try {
+      final googleUser = await _googleSignIn.authenticate();
+      final googleAuth = googleUser.authentication;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw FirebaseAuthException(
+          code: 'missing-google-id-token',
+          message: 'Google kimlik bilgisi alınamadı.',
+        );
+      }
+
+      final credential = GoogleAuthProvider.credential(idToken: idToken);
+      final result = await _auth.signInWithCredential(credential);
+      final user = result.user;
+
+      if (user != null) {
+        await createUserIfNotExists(user);
+      }
+
+      return user;
+    } on GoogleSignInException catch (error) {
+      if (error.code == GoogleSignInExceptionCode.canceled) {
+        return null;
+      }
+
+      throw FirebaseAuthException(
+        code: 'google-sign-in-failed',
+        message: error.description,
+      );
+    }
+  }
+
   Future<void> sendPasswordResetEmail(String email) async {
+    await _useTurkishAuthEmails();
+
     final actionCodeSettings = ActionCodeSettings(
       url: '$_passwordResetUrl?email=${Uri.encodeComponent(email)}',
       handleCodeInApp: false,
@@ -91,9 +193,11 @@ class AuthService {
       codeSent: (verificationId, resendToken) {
         onCodeSent(verificationId, resendToken);
       },
-      codeAutoRetrievalTimeout: (verificationId) {
-        onCodeSent(verificationId, forceResendingToken);
-      },
+      // Android'in otomatik SMS okuma süresinin dolması, yeni bir kodun
+      // gönderildiği anlamına gelmez. Ekrandaki doğrulama kimliğini ve yeniden
+      // gönderme jetonunu burada değiştirmiyoruz; kullanıcı mevcut kodu elle
+      // girmeye devam edebilir.
+      codeAutoRetrievalTimeout: (_) {},
     );
   }
 
@@ -143,6 +247,12 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    try {
+      await _ensureGoogleSignInInitialized();
+      await _googleSignIn.signOut();
+    } catch (_) {
+      // Firebase oturumu yine de kapatılmalı.
+    }
     await _auth.signOut();
   }
 
@@ -209,6 +319,18 @@ class AuthService {
         case 'network-request-failed':
           return 'İnternet bağlantını kontrol edip tekrar dene. Sorun '
               'sürerse e-posta seçeneğini kullanabilirsin.';
+        case 'email-not-verified':
+          return 'E-posta adresini doğrulaman gerekiyor. Sana doğrulama '
+              'bağlantısı gönderdik; gelen kutunu ve spam klasörünü kontrol et.';
+        case 'unauthorized-continue-uri':
+        case 'invalid-continue-uri':
+        case 'missing-continue-uri':
+          return 'E-posta doğrulama bağlantısı şu anda hazırlanamadı. '
+              'Lütfen destek ekibiyle iletişime geç ya da biraz sonra tekrar dene.';
+        case 'missing-google-id-token':
+        case 'google-sign-in-failed':
+          return 'Google ile giriş şu anda tamamlanamadı. Lütfen tekrar dene '
+              'veya telefon/e-posta seçeneğini kullan.';
         case 'app-not-authorized':
         case 'captcha-check-failed':
         case 'missing-client-identifier':

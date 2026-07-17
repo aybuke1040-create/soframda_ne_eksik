@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -8,6 +10,7 @@ import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/app_share_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
 import 'package:soframda_ne_eksik/services/iap_service.dart';
+import 'package:soframda_ne_eksik/services/rewarded_ad_service.dart';
 
 class BuyCreditsScreen extends StatefulWidget {
   const BuyCreditsScreen({super.key});
@@ -20,22 +23,67 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     with SingleTickerProviderStateMixin {
   final IAPService iap = IAPService();
   final CreditService _creditService = CreditService();
+  final RewardedAdService _rewardedAdService = RewardedAdService();
   final AppShareService _appShareService = const AppShareService();
   late final TabController _tabController;
 
   bool _isClaimingShareReward = false;
+  bool _isWatchingRewardedAd = false;
+  bool _isPreparingRewardedAd = true;
+  bool _isRewardedAdReady = false;
+  String? _rewardedAdSessionId;
   String? _activeProductId;
+  bool _isLoadingStoreProducts = true;
+  Map<String, ProductDetails> _storeProducts = const {};
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_prepareRewardedAd());
+      unawaited(_loadStoreProducts());
+    });
   }
 
   @override
   void dispose() {
+    _rewardedAdService.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _prepareRewardedAd() async {
+    if (_rewardedAdService.isReady ||
+        (_isPreparingRewardedAd && _rewardedAdSessionId != null)) {
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isPreparingRewardedAd = true;
+        _isRewardedAdReady = false;
+      });
+    }
+
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    final sessionId = await _creditService.createRewardedAdSession();
+    if (userId == null || sessionId == null) {
+      if (mounted) setState(() => _isPreparingRewardedAd = false);
+      return;
+    }
+
+    final loaded = await _rewardedAdService.preload(
+      userId: userId,
+      sessionId: sessionId,
+    );
+    if (!mounted) return;
+
+    setState(() {
+      _isPreparingRewardedAd = false;
+      _isRewardedAdReady = loaded;
+      _rewardedAdSessionId = loaded ? sessionId : null;
+    });
   }
 
   Future<void> _showFeedback({
@@ -49,6 +97,20 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
       message: message,
       icon: icon,
     );
+  }
+
+  Future<void> _loadStoreProducts() async {
+    try {
+      final products = await iap.loadProducts();
+      if (!mounted) return;
+      setState(() {
+        _storeProducts = {for (final product in products) product.id: product};
+        _isLoadingStoreProducts = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingStoreProducts = false);
+    }
   }
 
   Future<void> _shareAppAndClaimReward() async {
@@ -141,19 +203,126 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     }
   }
 
+  Future<void> _watchRewardedAdAndClaimCredit() async {
+    if (_isWatchingRewardedAd || !_isRewardedAdReady) return;
+
+    setState(() {
+      _isWatchingRewardedAd = true;
+    });
+
+    try {
+      final currentStatus = await _creditService.getRewardedAdCreditStatus();
+      if (!mounted) return;
+
+      if (currentStatus.status == RewardedAdCreditStatus.dailyLimitReached) {
+        await _showFeedback(
+          title: context.t(
+              'Günlük ödül limiti doldu', 'Daily reward limit reached'),
+          message: context.t(
+            'Bugün reklam izleyerek en fazla 10 kredi kazanabilirsin. Yarın tekrar deneyebilirsin.',
+            'You can earn up to 10 credits per day from ads. Try again tomorrow.',
+          ),
+          icon: Icons.lock_clock_rounded,
+        );
+        return;
+      }
+
+      final completed = await _rewardedAdService.showPreloadedAd();
+      if (!mounted) return;
+
+      setState(() {
+        _isRewardedAdReady = false;
+        _rewardedAdSessionId = null;
+      });
+      unawaited(_prepareRewardedAd());
+
+      if (!completed) {
+        await _showFeedback(
+          title: context.t('Reklam tamamlanmadı', 'Ad was not completed'),
+          message: context.t(
+            'Kredi kazanmak için reklamı sonuna kadar izlemen gerekiyor.',
+            'Watch the ad until the end to earn credits.',
+          ),
+          icon: Icons.info_outline_rounded,
+        );
+        return;
+      }
+
+      final result = await _creditService.waitForRewardedAdVerification(
+        previousStatus: currentStatus,
+      );
+      if (!mounted) return;
+
+      if (result.status == RewardedAdCreditStatus.rewardGranted) {
+        await _showFeedback(
+          title: context.t(
+            '${result.creditsAwarded} kredi kazandın',
+            'You earned ${result.creditsAwarded} credits',
+          ),
+          message: context.t(
+            '2 reklamı tamamladığın için hesabına ${result.creditsAwarded} kredi eklendi. Bugün reklamdan toplam ${result.dailyCreditsEarned} kredi kazandın.',
+            'You completed 2 ads, so ${result.creditsAwarded} credits were added. You earned ${result.dailyCreditsEarned} ad credits today.',
+          ),
+          icon: Icons.play_circle_fill_rounded,
+        );
+      } else if (result.status == RewardedAdCreditStatus.dailyLimitReached) {
+        await _showFeedback(
+          title: context.t(
+              'Günlük ödül limiti doldu', 'Daily reward limit reached'),
+          message: context.t(
+            'Bugün reklam izleyerek en fazla 10 kredi kazanabilirsin. Yarın tekrar deneyebilirsin.',
+            'You can earn up to 10 credits per day from ads. Try again tomorrow.',
+          ),
+          icon: Icons.lock_clock_rounded,
+        );
+      } else if (result.status == RewardedAdCreditStatus.progress) {
+        await _showFeedback(
+          title: context.t('1 reklam tamamlandı', '1 ad completed'),
+          message: context.t(
+            'Bir reklam daha izlersen 5 kredi kazanacaksın.',
+            'Watch one more ad to earn 5 credits.',
+          ),
+          icon: Icons.play_circle_outline_rounded,
+        );
+      } else {
+        await _showFeedback(
+          title: context.t('Ödül doğrulanıyor', 'Reward is being verified'),
+          message: context.t(
+            'Reklam tamamlandı. Sunucu doğrulaması gecikirse kredi kısa süre içinde otomatik olarak hesabına eklenir.',
+            'The ad was completed. If server verification is delayed, credits will be added automatically shortly.',
+          ),
+          icon: Icons.error_outline_rounded,
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      await _showFeedback(
+        title: context.t('Reklam açılamadı', 'Ad could not be opened'),
+        message: context.t(
+          'Şu anda uygun reklam bulunamadı. Kısa süre sonra tekrar deneyebilirsin.',
+          'No ad is available right now. Please try again shortly.',
+        ),
+        icon: Icons.error_outline_rounded,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isWatchingRewardedAd = false;
+        });
+      }
+    }
+  }
+
   Future<void> _startPurchase(String productId) async {
     setState(() {
       _activeProductId = productId;
     });
 
     try {
-      final products = await iap.loadProducts();
-      ProductDetails? product;
-      for (final candidate in products) {
-        if (candidate.id == productId) {
-          product = candidate;
-          break;
-        }
+      var product = _storeProducts[productId];
+      if (product == null) {
+        await _loadStoreProducts();
+        product = _storeProducts[productId];
       }
 
       if (product == null) {
@@ -210,11 +379,17 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
 
   Widget buildPack({
     required String productId,
-    required String title,
+    required String creditLabel,
     required String subtitle,
     required List<Color> colors,
   }) {
     final isLoading = _activeProductId == productId;
+    final storeProduct = _storeProducts[productId];
+    final priceLabel = storeProduct?.price ??
+        (_isLoadingStoreProducts
+            ? context.t('Fiyat yükleniyor...', 'Loading price...')
+            : context.t('Mağazada mevcut değil', 'Not available in store'));
+    final title = '$creditLabel • $priceLabel';
 
     return GestureDetector(
       onTap: isLoading ? null : () => _startPurchase(productId),
@@ -281,6 +456,105 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
               ),
               const SizedBox(width: 10),
               if (isLoading)
+                const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              else
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildRewardedAdPack() {
+    final isBusy = _isPreparingRewardedAd || _isWatchingRewardedAd;
+    final isEnabled = _isRewardedAdReady && !_isWatchingRewardedAd;
+    final status = _isPreparingRewardedAd
+        ? context.t('Reklam hazırlanıyor...', 'Preparing ad...')
+        : _isWatchingRewardedAd
+            ? context.t('Reklam doğrulanıyor...', 'Verifying ad...')
+            : _isRewardedAdReady
+                ? context.t('2 reklam izle • 5 kredi kazan',
+                    'Watch 2 ads • Earn 5 credits')
+                : context.t(
+                    'Reklam şu an hazır değil', 'Ad is not ready right now');
+
+    return GestureDetector(
+      onTap: isEnabled ? _watchRewardedAdAndClaimCredit : null,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 180),
+        opacity: isEnabled || isBusy ? 1 : 0.68,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF38BFA7), Color(0xFF168B7C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF168B7C).withValues(alpha: 0.22),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(18),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.24)),
+                ),
+                child: const Icon(
+                  Icons.play_circle_fill_rounded,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.t('Ücretsiz Kredi', 'Free Credits'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      status,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.92),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              if (isBusy)
                 const SizedBox(
                   width: 22,
                   height: 22,
@@ -444,6 +718,10 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
                 title = context.t('+$amount kredi (uygulamayı paylaş)',
                     '+$amount credits (share the app)');
                 icon = Icons.share_outlined;
+              } else if (action == 'rewarded_ad') {
+                title = context.t('+$amount kredi (reklam ödülü)',
+                    '+$amount credits (ad reward)');
+                icon = Icons.play_circle_fill_rounded;
               } else {
                 title = context.t(
                     '+$amount kredi yuklendi', '+$amount credits added');
@@ -521,7 +799,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
         children: [
           buildPack(
             productId: 'credits_50',
-            title: '50 Kredi - 49,99 TL',
+            creditLabel: context.t('50 Kredi', '50 Credits'),
             subtitle: context.t(
               'Hızlı mesajlaşma ve teklif akışları için ideal başlangıç paketi.',
               'A great starter pack for messaging and offers.',
@@ -530,7 +808,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
           ),
           buildPack(
             productId: 'credits_120',
-            title: '120 Kredi - 79,99 TL',
+            creditLabel: context.t('120 Kredi', '120 Credits'),
             subtitle: context.t(
               'Daha aktif kullanım için avantajlı orta paket.',
               'A strong mid pack for more active usage.',
@@ -539,13 +817,14 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
           ),
           buildPack(
             productId: 'credits_300',
-            title: '300 Kredi - 149,99 TL',
+            creditLabel: context.t('300 Kredi', '300 Credits'),
             subtitle: context.t(
               'Yoğun kullanım için en güçlü kredi paketi.',
               'The strongest credit pack for frequent use.',
             ),
             colors: const [Color(0xFF8667F7), Color(0xFF5E35D6)],
           ),
+          buildRewardedAdPack(),
           const SizedBox(height: 20),
           Align(
             alignment: Alignment.centerLeft,

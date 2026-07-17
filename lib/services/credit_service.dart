@@ -16,6 +16,31 @@ enum FeatureRequestStatus {
   failed,
 }
 
+enum RewardedAdCreditStatus {
+  progress,
+  rewardGranted,
+  dailyLimitReached,
+  unavailable,
+}
+
+class RewardedAdCreditResult {
+  const RewardedAdCreditResult({
+    required this.status,
+    required this.adsWatchedToday,
+    required this.adsUntilNextReward,
+    required this.creditsAwarded,
+    required this.dailyCreditsEarned,
+    this.credit,
+  });
+
+  final RewardedAdCreditStatus status;
+  final int adsWatchedToday;
+  final int adsUntilNextReward;
+  final int creditsAwarded;
+  final int dailyCreditsEarned;
+  final int? credit;
+}
+
 class CreditService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
@@ -95,6 +120,97 @@ class CreditService {
     }
   }
 
+  Future<String?> createRewardedAdSession() async {
+    try {
+      final callable = _functions.httpsCallable('createRewardedAdSession');
+      final result = await callable.call();
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final sessionId = (data['sessionId'] as String? ?? '').trim();
+      return sessionId.isEmpty ? null : sessionId;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<RewardedAdCreditResult> getRewardedAdCreditStatus() async {
+    return _readRewardedAdCreditResult('getRewardedAdCreditStatus');
+  }
+
+  Future<RewardedAdCreditResult> waitForRewardedAdVerification({
+    required RewardedAdCreditResult previousStatus,
+  }) async {
+    for (var attempt = 0; attempt < 20; attempt++) {
+      await Future<void>.delayed(const Duration(seconds: 1));
+      final status = await getRewardedAdCreditStatus();
+      if (status.status == RewardedAdCreditStatus.dailyLimitReached ||
+          status.adsWatchedToday > previousStatus.adsWatchedToday ||
+          status.dailyCreditsEarned > previousStatus.dailyCreditsEarned) {
+        return RewardedAdCreditResult(
+          status: status.dailyCreditsEarned >
+                  previousStatus.dailyCreditsEarned
+              ? RewardedAdCreditStatus.rewardGranted
+              : status.status,
+          adsWatchedToday: status.adsWatchedToday,
+          adsUntilNextReward: status.adsUntilNextReward,
+          creditsAwarded:
+              status.dailyCreditsEarned - previousStatus.dailyCreditsEarned,
+          dailyCreditsEarned: status.dailyCreditsEarned,
+          credit: status.credit,
+        );
+      }
+    }
+
+    return const RewardedAdCreditResult(
+      status: RewardedAdCreditStatus.unavailable,
+      adsWatchedToday: 0,
+      adsUntilNextReward: 2,
+      creditsAwarded: 0,
+      dailyCreditsEarned: 0,
+    );
+  }
+
+  Future<RewardedAdCreditResult> _readRewardedAdCreditResult(
+    String functionName,
+  ) async {
+    try {
+      final callable = _functions.httpsCallable(functionName);
+      final result = await callable.call();
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final creditsAwarded = (data['creditsAwarded'] as num?)?.toInt() ?? 0;
+      final dailyLimitReached = data['dailyLimitReached'] == true;
+      final status = dailyLimitReached
+          ? RewardedAdCreditStatus.dailyLimitReached
+          : creditsAwarded > 0
+              ? RewardedAdCreditStatus.rewardGranted
+              : RewardedAdCreditStatus.progress;
+
+      return RewardedAdCreditResult(
+        status: status,
+        adsWatchedToday: (data['adsWatchedToday'] as num?)?.toInt() ?? 0,
+        adsUntilNextReward: (data['adsUntilNextReward'] as num?)?.toInt() ?? 2,
+        creditsAwarded: creditsAwarded,
+        dailyCreditsEarned: (data['dailyCreditsEarned'] as num?)?.toInt() ?? 0,
+        credit: (data['credit'] as num?)?.toInt(),
+      );
+    } on FirebaseFunctionsException {
+      return const RewardedAdCreditResult(
+        status: RewardedAdCreditStatus.unavailable,
+        adsWatchedToday: 0,
+        adsUntilNextReward: 2,
+        creditsAwarded: 0,
+        dailyCreditsEarned: 0,
+      );
+    } catch (_) {
+      return const RewardedAdCreditResult(
+        status: RewardedAdCreditStatus.unavailable,
+        adsWatchedToday: 0,
+        adsUntilNextReward: 2,
+        creditsAwarded: 0,
+        dailyCreditsEarned: 0,
+      );
+    }
+  }
+
   Future<FeatureRequestStatus> featureRequest(String requestId) async {
     try {
       final callable = _functions.httpsCallable('featureRequest');
@@ -113,7 +229,8 @@ class CreditService {
 
       return FeatureRequestStatus.failed;
     } on FirebaseFunctionsException catch (e) {
-      debugPrint('featureRequest FirebaseFunctionsException: ${e.code} ${e.message}');
+      debugPrint(
+          'featureRequest FirebaseFunctionsException: ${e.code} ${e.message}');
       if (e.code == 'failed-precondition') {
         return FeatureRequestStatus.insufficientCredit;
       }

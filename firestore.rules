@@ -30,14 +30,20 @@ service cloud.firestore {
         'completedOrders',
         'role',
         'isAdmin',
-        'email',
-        'phoneNumber',
         'fcmToken',
         'latitude',
         'longitude',
         'pushUpdatedAt',
         'locationUpdatedAt',
-      ]);
+      ]) &&
+      // Eski herkese açık iletişim alanları yalnızca silinebilir. Kullanıcı
+      // istemcisi bu alanları ekleyemez veya mevcut değerlerini değiştiremez.
+      (!('email' in request.resource.data) ||
+        (('email' in resource.data) &&
+          request.resource.data.email == resource.data.email)) &&
+      (!('phoneNumber' in request.resource.data) ||
+        (('phoneNumber' in resource.data) &&
+          request.resource.data.phoneNumber == resource.data.phoneNumber));
     }
 
     function isChatParticipant(chatData) {

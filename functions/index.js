@@ -1,5 +1,5 @@
 const {onDocumentCreated} = require("firebase-functions/v2/firestore");
-const {onCall, HttpsError} = require("firebase-functions/v2/https");
+const {onCall, onRequest, HttpsError} = require("firebase-functions/v2/https");
 const {onSchedule} = require("firebase-functions/v2/scheduler");
 const logger = require("firebase-functions/logger");
 const admin = require("firebase-admin");
@@ -17,6 +17,20 @@ const WELCOME_SIGNUP_BONUS = 100;
 const REVIEW_BONUS = 5;
 const DAILY_LOGIN_BONUS = 5;
 const MONTHLY_SHARE_BONUS = 10;
+const REWARDED_ADS_PER_REWARD = 2;
+const REWARDED_AD_CREDIT_REWARD = 5;
+const REWARDED_AD_DAILY_CREDIT_LIMIT = 10;
+const REWARDED_AD_SESSION_LIFETIME_MS = 15 * 60 * 1000;
+const REWARDED_AD_CALLBACK_MAX_AGE_MS = 30 * 60 * 1000;
+const ADMOB_SSV_KEYS_URL =
+  "https://www.gstatic.com/admob/reward/verifier-keys.json";
+const ALLOWED_REWARDED_AD_UNIT_IDS = new Set([
+  "1942997978",
+  "8975310186",
+  "ca-app-pub-8020844869798583/1942997978",
+  "ca-app-pub-8020844869798583/8975310186",
+]);
+let admobSsvKeyCache = null;
 const PRIVATE_CONTEXT_DOC_ID = "context";
 const READY_FOOD_LIFETIME_DAYS = 2;
 const DEFAULT_REQUEST_LIFETIME_DAYS = 7;
@@ -443,6 +457,86 @@ exports.claimMonthlyShareReward = onCall(async (request) => {
       credit: currentCredit + MONTHLY_SHARE_BONUS,
     };
   });
+});
+
+exports.createRewardedAdSession = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  const userRef = db.collection("users").doc(uid);
+  const dayKey = buildIstanbulDayKey(new Date());
+  const rewardRef = userRef.collection("rewarded_ad_days").doc(dayKey);
+  const rewardDoc = await rewardRef.get();
+  const dailyCreditsEarned = Number(rewardDoc.data()?.creditsEarned || 0);
+  if (dailyCreditsEarned >= REWARDED_AD_DAILY_CREDIT_LIMIT) {
+    throw new HttpsError(
+        "resource-exhausted",
+        "Daily rewarded ad credit limit reached",
+    );
+  }
+
+  const sessionId = crypto.randomBytes(24).toString("hex");
+  await db.collection("rewarded_ad_sessions").doc(sessionId).set({
+    uid,
+    status: "pending",
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    expiresAt: admin.firestore.Timestamp.fromMillis(
+        Date.now() + REWARDED_AD_SESSION_LIFETIME_MS,
+    ),
+  });
+
+  return {sessionId};
+});
+
+exports.admobRewardCallback = onRequest(async (request, response) => {
+  try {
+    const callback = await verifyAdMobSsvRequest(request.originalUrl);
+    const result = await applyVerifiedRewardedAd(callback);
+    logger.info("AdMob SSV callback processed", {
+      transactionId: callback.transactionId,
+      result,
+    });
+    response.status(200).send("ok");
+  } catch (error) {
+    logger.warn("AdMob SSV callback rejected", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+    response.status(400).send("invalid callback");
+  }
+});
+
+exports.getRewardedAdCreditStatus = onCall(async (request) => {
+  const uid = request.auth && request.auth.uid;
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "User not logged in");
+  }
+
+  const userRef = db.collection("users").doc(uid);
+  const dayKey = buildIstanbulDayKey(new Date());
+  const rewardRef = userRef.collection("rewarded_ad_days").doc(dayKey);
+  const [userDoc, rewardDoc] = await Promise.all([
+    userRef.get(),
+    rewardRef.get(),
+  ]);
+  const currentCredit = getCreditValue(userDoc.data());
+  const rewardData = rewardDoc.data() || {};
+  const adsWatchedToday = Number(rewardData.adsWatched || 0);
+  const dailyCreditsEarned = Number(rewardData.creditsEarned || 0);
+  const adsRemainder = adsWatchedToday % REWARDED_ADS_PER_REWARD;
+
+  return {
+    success: true,
+    dailyLimitReached: dailyCreditsEarned >= REWARDED_AD_DAILY_CREDIT_LIMIT,
+    adsWatchedToday,
+    adsUntilNextReward: adsRemainder === 0 ?
+      REWARDED_ADS_PER_REWARD :
+      REWARDED_ADS_PER_REWARD - adsRemainder,
+    creditsAwarded: 0,
+    dailyCreditsEarned,
+    credit: currentCredit,
+  };
 });
 
 exports.createAdminBroadcast = onCall(async (request) => {
@@ -1972,6 +2066,210 @@ function hashPurchaseToken(purchaseToken) {
   return crypto.createHash("sha256").update(String(purchaseToken)).digest("hex");
 }
 
+async function verifyAdMobSsvRequest(originalUrl) {
+  const questionMarkIndex = String(originalUrl || "").indexOf("?");
+  if (questionMarkIndex < 0) {
+    throw new Error("SSV query string is missing");
+  }
+
+  const rawQuery = originalUrl.slice(questionMarkIndex + 1);
+  const signatureMarker = "&signature=";
+  const signatureIndex = rawQuery.indexOf(signatureMarker);
+  if (signatureIndex < 0) {
+    throw new Error("SSV signature is missing");
+  }
+
+  const signedContent = rawQuery.slice(0, signatureIndex);
+  const parameters = new URLSearchParams(rawQuery);
+  const signature = parameters.get("signature");
+  const keyId = parameters.get("key_id");
+  const transactionId = parameters.get("transaction_id");
+  const userId = parameters.get("user_id");
+  const sessionId = parameters.get("custom_data");
+  const adUnitId = parameters.get("ad_unit");
+  const timestamp = Number(parameters.get("timestamp"));
+
+  if (!signature || !keyId || !transactionId || !userId || !sessionId ||
+      !adUnitId || !Number.isFinite(timestamp)) {
+    throw new Error("SSV required parameters are missing");
+  }
+
+  const isAdMobVerificationTest =
+    adUnitId === "1234567890" &&
+    userId === "ssv-url-test-user" &&
+    sessionId === "ssv-url-test-session";
+
+  if (!ALLOWED_REWARDED_AD_UNIT_IDS.has(adUnitId) &&
+      !isAdMobVerificationTest) {
+    throw new Error("SSV ad unit is not allowed");
+  }
+
+  const age = Date.now() - timestamp;
+  if (age > REWARDED_AD_CALLBACK_MAX_AGE_MS || age < -5 * 60 * 1000) {
+    throw new Error("SSV callback timestamp is outside the allowed window");
+  }
+
+  const publicKeys = await getAdMobSsvPublicKeys();
+  const publicKey = publicKeys.get(String(keyId));
+  if (!publicKey) {
+    admobSsvKeyCache = null;
+    const refreshedKeys = await getAdMobSsvPublicKeys();
+    if (!refreshedKeys.has(String(keyId))) {
+      throw new Error("SSV verification key was not found");
+    }
+  }
+
+  const verifyingKey = (admobSsvKeyCache.keys).get(String(keyId));
+  const signatureBytes = Buffer.from(toBase64(signature), "base64");
+  const valid = crypto.verify(
+      "sha256",
+      Buffer.from(signedContent, "utf8"),
+      verifyingKey,
+      signatureBytes,
+  );
+  if (!valid) {
+    throw new Error("SSV signature verification failed");
+  }
+
+  return {
+    transactionId,
+    userId,
+    sessionId,
+    adUnitId,
+    timestamp,
+  };
+}
+
+function toBase64(value) {
+  const normalized = String(value).replace(/-/g, "+").replace(/_/g, "/");
+  return normalized + "=".repeat((4 - normalized.length % 4) % 4);
+}
+
+async function getAdMobSsvPublicKeys() {
+  const now = Date.now();
+  if (admobSsvKeyCache && admobSsvKeyCache.expiresAt > now) {
+    return admobSsvKeyCache.keys;
+  }
+
+  const response = await fetch(ADMOB_SSV_KEYS_URL);
+  if (!response.ok) {
+    throw new Error(`AdMob SSV keys request failed: ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const keys = new Map();
+  for (const entry of payload.keys || []) {
+    if (entry.keyId != null && entry.pem) {
+      keys.set(String(entry.keyId), entry.pem);
+    }
+  }
+  if (keys.size === 0) {
+    throw new Error("AdMob SSV key response was empty");
+  }
+
+  admobSsvKeyCache = {
+    keys,
+    expiresAt: now + 24 * 60 * 60 * 1000,
+  };
+  return keys;
+}
+
+async function applyVerifiedRewardedAd(callback) {
+  const sessionRef = db.collection("rewarded_ad_sessions")
+      .doc(callback.sessionId);
+  const transactionRef = db.collection("admob_reward_transactions")
+      .doc(callback.transactionId);
+
+  return db.runTransaction(async (tx) => {
+    const [sessionDoc, transactionDoc] = await Promise.all([
+      tx.get(sessionRef),
+      tx.get(transactionRef),
+    ]);
+
+    if (transactionDoc.exists) {
+      return "duplicate";
+    }
+    if (!sessionDoc.exists) {
+      return "unknown_session";
+    }
+
+    const session = sessionDoc.data() || {};
+    const expiresAt = timestampToDate(session.expiresAt);
+    if (session.status !== "pending" || session.uid !== callback.userId ||
+        !expiresAt || expiresAt.getTime() < Date.now()) {
+      return "invalid_session";
+    }
+
+    const userRef = db.collection("users").doc(callback.userId);
+    const dayKey = buildIstanbulDayKey(new Date(callback.timestamp));
+    const rewardRef = userRef.collection("rewarded_ad_days").doc(dayKey);
+    const [userDoc, rewardDoc] = await Promise.all([
+      tx.get(userRef),
+      tx.get(rewardRef),
+    ]);
+    if (!userDoc.exists) {
+      return "unknown_user";
+    }
+
+    const rewardData = rewardDoc.data() || {};
+    const adsWatchedBefore = Number(rewardData.adsWatched || 0);
+    const creditsEarnedBefore = Number(rewardData.creditsEarned || 0);
+    const atDailyLimit =
+      creditsEarnedBefore >= REWARDED_AD_DAILY_CREDIT_LIMIT;
+    const adsWatchedToday = atDailyLimit ?
+      adsWatchedBefore : adsWatchedBefore + 1;
+    const shouldAwardCredit = !atDailyLimit &&
+      Math.floor(adsWatchedToday / REWARDED_ADS_PER_REWARD) >
+      Math.floor(adsWatchedBefore / REWARDED_ADS_PER_REWARD);
+    const creditsAwarded = shouldAwardCredit ?
+      Math.min(
+          REWARDED_AD_CREDIT_REWARD,
+          REWARDED_AD_DAILY_CREDIT_LIMIT - creditsEarnedBefore,
+      ) : 0;
+    const dailyCreditsEarned = creditsEarnedBefore + creditsAwarded;
+
+    tx.set(transactionRef, {
+      uid: callback.userId,
+      sessionId: callback.sessionId,
+      adUnitId: callback.adUnitId,
+      callbackTimestamp: callback.timestamp,
+      processedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    tx.set(sessionRef, {
+      status: "consumed",
+      transactionId: callback.transactionId,
+      consumedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, {merge: true});
+
+    if (!atDailyLimit) {
+      tx.set(rewardRef, {
+        adsWatched: adsWatchedToday,
+        creditsEarned: dailyCreditsEarned,
+        lastTransactionId: callback.transactionId,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, {merge: true});
+    }
+
+    if (creditsAwarded > 0) {
+      const currentCredit = getCreditValue(userDoc.data());
+      applyCreditChange(
+          tx,
+          userRef,
+          currentCredit + creditsAwarded,
+          creditsAwarded,
+          "rewarded_ad",
+          {
+            lastRewardedAdCreditAt:
+              admin.firestore.FieldValue.serverTimestamp(),
+          },
+      );
+    }
+
+    return atDailyLimit ? "daily_limit" :
+      creditsAwarded > 0 ? "reward_granted" : "progress";
+  });
+}
+
 function getOfferCostForRequest(requestData) {
   const requestType = String(requestData.requestType || "");
   if (requestType === "delivery" || requestType === "design") {
@@ -2072,6 +2370,21 @@ function buildMonthKey(date) {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   return `${year}-${month}`;
+}
+
+function buildIstanbulDayKey(date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const values = {};
+  for (const part of parts) {
+    values[part.type] = part.value;
+  }
+
+  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function buildNearbyRequestBody(request) {

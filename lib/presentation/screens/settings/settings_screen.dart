@@ -144,32 +144,15 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Future<void> deleteAccount(BuildContext context) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      await user?.delete();
-
-      if (!context.mounted) {
-        return;
-      }
-
-      await ActionFeedbackService.show(
-        context,
-        title: context.t('Hesap silindi', 'Account deleted'),
-        message: context.t('Hesap silindi.', 'Account deleted.'),
-        icon: Icons.delete_outline_rounded,
-      );
-    } catch (e) {
-      if (!context.mounted) {
-        return;
-      }
-
-      await ActionFeedbackService.show(
-        context,
-        title: context.t('Hata', 'Error'),
-        message: "${context.t('Hata', 'Error')}: $e",
-        icon: Icons.error_outline_rounded,
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw FirebaseAuthException(
+        code: 'no-current-user',
+        message: context.t('Aktif kullanıcı bulunamadı.', 'No active user.'),
       );
     }
+
+    await user.delete();
   }
 
   Future<void> _showDeleteAccountSheet(BuildContext context) async {
@@ -277,13 +260,69 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
 
+    var deleted = false;
+    Object? deleteError;
+
     try {
       await deleteAccount(context);
+      deleted = true;
+    } catch (error) {
+      deleteError = error;
     } finally {
       if (context.mounted) {
         Navigator.of(context, rootNavigator: true).pop();
       }
     }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    if (deleted) {
+      await ActionFeedbackService.show(
+        context,
+        title: context.t('Hesap silindi', 'Account deleted'),
+        message: context.t(
+          'Hesabın silindi. Giriş ekranına yönlendiriliyorsun.',
+          'Your account was deleted. Redirecting to sign in.',
+        ),
+        icon: Icons.delete_outline_rounded,
+      );
+
+      if (!context.mounted) {
+        return;
+      }
+
+      Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => const AuthWrapper(),
+        ),
+        (route) => false,
+      );
+      return;
+    }
+
+    await ActionFeedbackService.show(
+      context,
+      title: context.t('Hata', 'Error'),
+      message: _deleteAccountErrorMessage(context, deleteError),
+      icon: Icons.error_outline_rounded,
+    );
+  }
+
+  String _deleteAccountErrorMessage(BuildContext context, Object? error) {
+    if (error is FirebaseAuthException &&
+        error.code == 'requires-recent-login') {
+      return context.t(
+        'Güvenlik nedeniyle hesabını silmeden önce çıkış yapıp tekrar giriş yapmalısın.',
+        'For security, sign out and sign in again before deleting your account.',
+      );
+    }
+
+    return context.t(
+      'Hesap silinemedi. Lütfen biraz sonra tekrar dene.',
+      'Account could not be deleted. Please try again later.',
+    );
   }
 
   Widget _tile({
