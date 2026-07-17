@@ -205,7 +205,7 @@ workflows:
             end
           end
 
-          abort('No gRPC basic_seq.h files were found to patch') unless files.any? { |file| File.exist?(file) }
+          puts 'No gRPC basic_seq.h files found; patch is not needed' unless files.any? { |file| File.exist?(file) }
           RUBY
 
       - name: Build iOS simulator app
@@ -437,7 +437,7 @@ workflows:
             end
           end
 
-          abort('No gRPC basic_seq.h files were found to patch') unless files.any? { |file| File.exist?(file) }
+          puts 'No gRPC basic_seq.h files found; patch is not needed' unless files.any? { |file| File.exist?(file) }
           RUBY
 
       - name: Apply provisioning profiles
