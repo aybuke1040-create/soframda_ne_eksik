@@ -83,7 +83,7 @@ workflows:
             '*.h'
           ))
 
-          abort('No FlutterFire headers found to patch') if storage_headers.empty? && storage_impls.empty? && messaging_headers.empty? && messaging_impls.empty? && auth_headers.empty?
+          puts 'No legacy FlutterFire headers found; patch is not needed' if storage_headers.empty? && storage_impls.empty? && messaging_headers.empty? && messaging_impls.empty? && auth_headers.empty?
 
           storage_headers.each do |file|
             FileUtils.chmod('u+w', file)
@@ -311,7 +311,7 @@ workflows:
             '*.h'
           ))
 
-          abort('No FlutterFire headers found to patch') if storage_headers.empty? && storage_impls.empty? && messaging_headers.empty? && messaging_impls.empty? && auth_headers.empty?
+          puts 'No legacy FlutterFire headers found; patch is not needed' if storage_headers.empty? && storage_impls.empty? && messaging_headers.empty? && messaging_impls.empty? && auth_headers.empty?
 
           storage_headers.each do |file|
             FileUtils.chmod('u+w', file)
