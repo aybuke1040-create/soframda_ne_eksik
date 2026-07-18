@@ -108,6 +108,9 @@ Ozellikle tekrar test edilecek akislar:
 
 ## 7. Android yayin oncesi
 
+- [ ] Her yeni build'de imzali release `APK` ve Play Console `AAB` birlikte uretildi
+- [ ] Yeni `APK` su konumda olustu:
+  - `build/app/outputs/flutter-apk/app-release.apk`
 - [ ] yeni `AAB` su konumda olustu:
   - `build/app/outputs/bundle/release/app-release.aab`
 - [ ] Play Console uyarilari okundu
@@ -116,6 +119,7 @@ Ozellikle tekrar test edilecek akislar:
 
 ## 8. iOS yayin oncesi
 
+- [ ] `pubspec.yaml` build numarasi iOS build numarasi olarak kullaniliyor
 - [ ] degisiklikler GitHub `main` branch'e push edildi
 - [ ] Codemagic dogru branch ve dogru commit ile build aliyor
 - [ ] log icinde dogru iOS surumu gorunuyor
