@@ -2,6 +2,27 @@
 
 Bu dokumanin amaci, uygulamayi en ekonomik yoldan hizli yaymak icin Make.com merkezli ama Firebase altyapisini da kullanan pratik bir otomasyon sistemi kurmaktir.
 
+## Asama 1: Meta + SEO Olcum Kurulumu
+
+Bu repoda ilk teknik kurulum tamamlandi:
+- Website tarafinda `NEXT_PUBLIC_META_PIXEL_ID` ile calisan Meta Pixel altyapisi eklendi.
+- Ana sayfa `PageView`, magazaya tiklama ise `StoreDownloadClick` custom event'i olarak izlenir.
+- Kampanya link script'i artik landing, Android ve iOS linklerini UTM ile birlikte uretir.
+- Ana sayfaya `MobileApplication` schema eklendi.
+- Flutter web giris HTML'i varsayilan proje metalarindan marka odakli SEO metalarina tasindi.
+
+Kurulum adimlari:
+1. Meta Events Manager icinde Pixel olustur.
+2. Vercel veya hosting ortaminda `NEXT_PUBLIC_META_PIXEL_ID` degerini tanimla.
+3. `website` klasorunde `npm run campaign:links -- --source=facebook --campaign=istanbul_ev_yemegi_2026w28 --content=creative_01` calistir.
+4. Meta Ads Manager'da trafik hedefini oncelikle `links.landing` olarak kullan; store yonlendirme tiklamalari Pixel tarafinda `StoreDownloadClick` ile olculur.
+5. Yayin sonrasi Events Manager'da `PageView` ve `StoreDownloadClick` event'lerinin geldigini dogrula.
+
+Sonraki teknik asama:
+- Conversions API icin server-side event endpoint'i ekle.
+- Firebase Analytics install/signup event'lerini kampanya UTM'leriyle raporla.
+- Izinli kullanicilar icin yeniden pazarlama segmentlerini anonim ve KVKK uyumlu sekilde hazirla.
+
 ## Plan Karari
 
 Baslangic icin onerilen Make plani: Core.

@@ -1,13 +1,28 @@
+"use client";
+
 import Image from "next/image";
+import { trackMetaEvent } from "@/components/MetaPixel";
 
 type StoreBadgeProps = {
   href?: string;
   label: string;
   badgeSrc: string;
   alt: string;
+  platform?: "android" | "ios";
 };
 
-export function StoreBadge({ href, label, badgeSrc, alt }: StoreBadgeProps) {
+export function StoreBadge({ href, label, badgeSrc, alt, platform }: StoreBadgeProps) {
+  const handleClick = () => {
+    if (!href) {
+      return;
+    }
+
+    trackMetaEvent("StoreDownloadClick", {
+      platform: platform || "unknown",
+      destination: href
+    });
+  };
+
   const badge = (
     <span className="inline-flex overflow-hidden rounded-[1.15rem] border border-slate-200/80 bg-white p-1 shadow-[0_14px_35px_rgba(32,21,47,0.08)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_rgba(32,21,47,0.12)]">
       <Image src={badgeSrc} alt={alt} width={220} height={68} className="h-[54px] w-auto rounded-[0.9rem]" />
@@ -23,7 +38,7 @@ export function StoreBadge({ href, label, badgeSrc, alt }: StoreBadgeProps) {
   }
 
   return (
-    <a href={href} target="_blank" rel="noreferrer" title={label}>
+    <a href={href} target="_blank" rel="noreferrer" title={label} onClick={handleClick}>
       {badge}
     </a>
   );

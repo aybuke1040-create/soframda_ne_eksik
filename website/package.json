@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "generate:qr": "node scripts/generate-qr.js",
+    "campaign:links": "node scripts/campaign-links.js",
     "site-check": "node scripts/site-check.js",
     "pre-deploy-check": "node scripts/pre-deploy-check.js",
     "seo-check": "node scripts/seo-check.js",

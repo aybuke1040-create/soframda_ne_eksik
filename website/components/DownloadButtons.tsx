@@ -9,12 +9,14 @@ export function DownloadButtons() {
         label="Google Play üzerinden indir"
         badgeSrc="/badges/google-play.svg"
         alt="Google Play'den indirin"
+        platform="android"
       />
       <StoreBadge
         href={siteConfig.appLinks.ios || undefined}
         label="App Store üzerinden indir"
         badgeSrc="/badges/app-store.svg"
         alt="App Store'dan indirin"
+        platform="ios"
       />
     </div>
   );

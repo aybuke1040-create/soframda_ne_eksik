@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { MetaPixel } from "@/components/MetaPixel";
 import { siteConfig } from "@/components/site-config";
 
 export const metadata: Metadata = {
@@ -25,8 +26,21 @@ export const metadata: Metadata = {
   authors: [{ name: "Ben Yaparım" }],
   creator: "Ben Yaparım",
   publisher: "Ben Yaparım",
+  category: "Yerel hizmet pazaryeri",
   alternates: {
     canonical: "/"
+  },
+  appLinks: {
+    android: {
+      package: "com.benyaparim.app",
+      app_name: "Ben YaparÄ±m",
+      url: siteConfig.appLinks.android
+    },
+    ios: {
+      app_store_id: "6762226701",
+      app_name: "Ben YaparÄ±m",
+      url: siteConfig.appLinks.ios
+    }
   },
   openGraph: {
     type: "website",
@@ -71,6 +85,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Header />
         <main>{children}</main>
         <Footer />
+        <MetaPixel />
       </body>
     </html>
   );

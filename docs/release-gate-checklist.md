@@ -22,6 +22,7 @@ Bu liste her `Play Console` veya `App Store Connect` yuklemesinden once uygulani
 - [ ] `storage.rules` degistiyse yukleme/guncelleme akislari yeniden test edildi
 - [ ] Yetki hatasi uretme ihtimali olan ekranlar manuel denendi
 - [ ] Admin, kullanici, ilan sahibi ve teklif veren rolleri ayri ayri dusunuldu
+- [ ] Firestore veya Storage rule deploy'u yapildiysa bunun Android ve iOS'u ayni anda etkiledigi not edildi
 
 Ozellikle tekrar test edilecek akislar:
 

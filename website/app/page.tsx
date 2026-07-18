@@ -45,6 +45,23 @@ export default function HomePage() {
     }))
   };
 
+  const mobileApplicationSchema = {
+    "@context": "https://schema.org",
+    "@type": "MobileApplication",
+    name: "Ben YaparÄ±m",
+    operatingSystem: "Android, iOS",
+    applicationCategory: "LifestyleApplication",
+    url: siteConfig.domain,
+    downloadUrl: [siteConfig.appLinks.android, siteConfig.appLinks.ios],
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "TRY"
+    },
+    description:
+      "Yerel yemek, ikram, organizasyon, tasarim ve tasima ihtiyaclari icin ilan verip teklif alabilecegin mobil uygulama."
+  };
+
   return (
     <div className="pb-20">
       <script
@@ -58,6 +75,10 @@ export default function HomePage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(mobileApplicationSchema) }}
       />
 
       <section className="mesh overflow-hidden">

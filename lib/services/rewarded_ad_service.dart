@@ -4,13 +4,17 @@ import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class RewardedAdService {
+  RewardedAdService._();
+
+  static final RewardedAdService instance = RewardedAdService._();
+
   static const String _androidRewardedAdUnitId =
       'ca-app-pub-8020844869798583/1942997978';
   static const String _iosRewardedAdUnitId =
       'ca-app-pub-8020844869798583/8975310186';
 
   RewardedAd? _rewardedAd;
-  bool _isLoading = false;
+  Future<bool>? _loadFuture;
 
   bool get isReady => _rewardedAd != null;
 
@@ -27,17 +31,15 @@ class RewardedAdService {
     }
   }
 
-  Future<bool> preload({
-    required String userId,
-    required String sessionId,
-  }) async {
-    if (_rewardedAd != null) return true;
-    if (_isLoading) return false;
+  Future<bool> preload() {
+    if (_rewardedAd != null) return Future<bool>.value(true);
+    return _loadFuture ??= _loadAd().whenComplete(() => _loadFuture = null);
+  }
 
+  Future<bool> _loadAd() async {
     final adUnitId = _adUnitId;
     if (adUnitId == null) return false;
 
-    _isLoading = true;
     final completer = Completer<bool>();
 
     await RewardedAd.load(
@@ -45,18 +47,10 @@ class RewardedAdService {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          ad.setServerSideOptions(
-            ServerSideVerificationOptions(
-              userId: userId,
-              customData: sessionId,
-            ),
-          );
           _rewardedAd = ad;
-          _isLoading = false;
           if (!completer.isCompleted) completer.complete(true);
         },
         onAdFailedToLoad: (_) {
-          _isLoading = false;
           if (!completer.isCompleted) completer.complete(false);
         },
       ),
@@ -64,28 +58,36 @@ class RewardedAdService {
 
     return completer.future.timeout(
       const Duration(seconds: 30),
-      onTimeout: () {
-        _isLoading = false;
-        return false;
-      },
+      onTimeout: () => false,
     );
   }
 
-  Future<bool> showPreloadedAd() async {
+  Future<bool> showPreloadedAd({
+    required String userId,
+    required String sessionId,
+  }) async {
     final ad = _rewardedAd;
     if (ad == null) return false;
 
     _rewardedAd = null;
+    ad.setServerSideOptions(
+      ServerSideVerificationOptions(
+        userId: userId,
+        customData: sessionId,
+      ),
+    );
     final completer = Completer<bool>();
     var rewardEarned = false;
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
+        unawaited(preload());
         if (!completer.isCompleted) completer.complete(rewardEarned);
       },
       onAdFailedToShowFullScreenContent: (ad, _) {
         ad.dispose();
+        unawaited(preload());
         if (!completer.isCompleted) completer.complete(false);
       },
     );
@@ -102,10 +104,5 @@ class RewardedAdService {
         return false;
       },
     );
-  }
-
-  void dispose() {
-    _rewardedAd?.dispose();
-    _rewardedAd = null;
   }
 }

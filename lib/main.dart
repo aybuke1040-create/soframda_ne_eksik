@@ -16,6 +16,7 @@ import 'package:soframda_ne_eksik/core/utils/text_utils.dart';
 import 'package:soframda_ne_eksik/firebase_options.dart';
 import 'package:soframda_ne_eksik/services/notification_permission_service.dart';
 import 'package:soframda_ne_eksik/services/low_credit_prompt_observer.dart';
+import 'package:soframda_ne_eksik/services/rewarded_ad_service.dart';
 
 import 'core/auth_wrapper.dart';
 import 'core/utils/location_utils.dart';
@@ -48,8 +49,17 @@ Future<void> main() async {
 
   runApp(const MyApp());
 
-  unawaited(MobileAds.instance.initialize());
+  unawaited(_initializeAds());
   unawaited(_configureNotifications());
+}
+
+Future<void> _initializeAds() async {
+  try {
+    await MobileAds.instance.initialize();
+    await RewardedAdService.instance.preload();
+  } catch (error, stackTrace) {
+    debugPrint('Ad startup skipped: $error\n$stackTrace');
+  }
 }
 
 Future<void> _configureNotifications() async {

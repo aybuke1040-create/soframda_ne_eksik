@@ -23,7 +23,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     with SingleTickerProviderStateMixin {
   final IAPService iap = IAPService();
   final CreditService _creditService = CreditService();
-  final RewardedAdService _rewardedAdService = RewardedAdService();
+  final RewardedAdService _rewardedAdService = RewardedAdService.instance;
   final AppShareService _appShareService = const AppShareService();
   late final TabController _tabController;
 
@@ -48,7 +48,6 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
 
   @override
   void dispose() {
-    _rewardedAdService.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -67,16 +66,16 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     }
 
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    final sessionId = await _creditService.createRewardedAdSession();
+    final results = await Future.wait<Object?>([
+      _creditService.createRewardedAdSession(),
+      _rewardedAdService.preload(),
+    ]);
+    final sessionId = results[0] as String?;
+    final loaded = results[1] as bool;
     if (userId == null || sessionId == null) {
       if (mounted) setState(() => _isPreparingRewardedAd = false);
       return;
     }
-
-    final loaded = await _rewardedAdService.preload(
-      userId: userId,
-      sessionId: sessionId,
-    );
     if (!mounted) return;
 
     setState(() {
@@ -227,7 +226,14 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
         return;
       }
 
-      final completed = await _rewardedAdService.showPreloadedAd();
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final sessionId = _rewardedAdSessionId;
+      if (userId == null || sessionId == null) return;
+
+      final completed = await _rewardedAdService.showPreloadedAd(
+        userId: userId,
+        sessionId: sessionId,
+      );
       if (!mounted) return;
 
       setState(() {

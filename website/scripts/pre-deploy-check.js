@@ -15,6 +15,7 @@ const requiredFiles = [
   "app/sitemap.ts",
   "app/manifest.ts",
   "components/site-config.ts",
+  "components/MetaPixel.tsx",
   "public/brand/logo.png",
   "public/qr/android.svg",
   "public/qr/ios.svg",
@@ -112,6 +113,8 @@ function checkSeoFiles() {
     ["Metadata description tanımlı", layout.includes("description:")],
     ["Open Graph tanımlı", layout.includes("openGraph")],
     ["Twitter card tanımlı", layout.includes("twitter")],
+    ["App links tanimli", layout.includes("appLinks")],
+    ["Meta Pixel bileseni bagli", layout.includes("MetaPixel")],
     ["Robots sitemap bildiriyor", robots.includes("sitemap")],
     ["Sitemap ana rotaları içeriyor", sitemap.includes("/download") && sitemap.includes("/privacy")],
     ["Vercel güvenlik headerları tanımlı", vercel.includes("Strict-Transport-Security") && vercel.includes("Content-Security-Policy")]
