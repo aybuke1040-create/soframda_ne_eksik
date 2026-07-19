@@ -30,8 +30,11 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
   bool _isClaimingShareReward = false;
   bool _isWatchingRewardedAd = false;
   bool _isPreparingRewardedAd = true;
+  bool _rewardedAdPreparationInProgress = false;
   bool _isRewardedAdReady = false;
   String? _rewardedAdSessionId;
+  RewardedAdCreditResult? _preparedRewardedAdStatus;
+  Timer? _rewardedAdRetryTimer;
   String? _activeProductId;
   bool _isLoadingStoreProducts = true;
   Map<String, ProductDetails> _storeProducts = const {};
@@ -48,15 +51,22 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
 
   @override
   void dispose() {
+    _rewardedAdRetryTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
 
   Future<void> _prepareRewardedAd() async {
-    if (_rewardedAdService.isReady ||
-        (_isPreparingRewardedAd && _rewardedAdSessionId != null)) {
+    if (!mounted) return;
+    if (_isRewardedAdReady &&
+        _rewardedAdService.isReady &&
+        _rewardedAdSessionId != null) {
       return;
     }
+    if (_rewardedAdPreparationInProgress) return;
+
+    _rewardedAdPreparationInProgress = true;
+    _rewardedAdRetryTimer?.cancel();
 
     if (mounted) {
       setState(() {
@@ -65,24 +75,35 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
       });
     }
 
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    final results = await Future.wait<Object?>([
-      _creditService.createRewardedAdSession(),
-      _rewardedAdService.preload(),
-    ]);
-    final sessionId = results[0] as String?;
-    final loaded = results[1] as bool;
-    if (userId == null || sessionId == null) {
-      if (mounted) setState(() => _isPreparingRewardedAd = false);
-      return;
-    }
-    if (!mounted) return;
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      final results = await Future.wait<Object?>([
+        _creditService.createRewardedAdSession(),
+        _rewardedAdService.preload(),
+        _creditService.getRewardedAdCreditStatus(),
+      ]);
+      final sessionId = results[0] as String?;
+      final loaded = results[1] as bool;
+      final status = results[2] as RewardedAdCreditResult;
+      final ready = userId != null && sessionId != null && loaded;
+      if (!mounted) return;
 
-    setState(() {
-      _isPreparingRewardedAd = false;
-      _isRewardedAdReady = loaded;
-      _rewardedAdSessionId = loaded ? sessionId : null;
-    });
+      setState(() {
+        _isPreparingRewardedAd = false;
+        _isRewardedAdReady = ready;
+        _rewardedAdSessionId = ready ? sessionId : null;
+        _preparedRewardedAdStatus = ready ? status : null;
+      });
+
+      if (!ready) {
+        _rewardedAdRetryTimer = Timer(
+          const Duration(seconds: 5),
+          () => unawaited(_prepareRewardedAd()),
+        );
+      }
+    } finally {
+      _rewardedAdPreparationInProgress = false;
+    }
   }
 
   Future<void> _showFeedback({
@@ -210,7 +231,8 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
     });
 
     try {
-      final currentStatus = await _creditService.getRewardedAdCreditStatus();
+      final currentStatus = _preparedRewardedAdStatus ??
+          await _creditService.getRewardedAdCreditStatus();
       if (!mounted) return;
 
       if (currentStatus.status == RewardedAdCreditStatus.dailyLimitReached) {
@@ -239,6 +261,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
       setState(() {
         _isRewardedAdReady = false;
         _rewardedAdSessionId = null;
+        _preparedRewardedAdStatus = null;
       });
       unawaited(_prepareRewardedAd());
 
