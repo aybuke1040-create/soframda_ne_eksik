@@ -5,11 +5,6 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthService {
   AuthService();
 
-  static const String _passwordResetUrl =
-      'https://benyaparimci.com/reset-password';
-  static const String _emailVerificationUrl =
-      'https://benyaparimci.com/verify-email';
-  static const String _appBundleId = 'com.benyaparim.app';
   static const String _phoneFallbackMessage =
       'Dilersen e-posta seçeneğiyle devam edebilir ya da destek için '
       'benyaparimci@gmail.com adresine yazabilirsin.';
@@ -41,16 +36,7 @@ class AuthService {
   Future<void> _sendVerificationEmail(User user) async {
     if (!user.emailVerified) {
       await _useTurkishAuthEmails();
-      final actionCodeSettings = ActionCodeSettings(
-        url:
-            '$_emailVerificationUrl?email=${Uri.encodeComponent(user.email ?? '')}',
-        handleCodeInApp: false,
-        androidPackageName: _appBundleId,
-        androidInstallApp: false,
-        iOSBundleId: _appBundleId,
-      );
-
-      await user.sendEmailVerification(actionCodeSettings);
+      await user.sendEmailVerification();
     }
   }
 
@@ -144,19 +130,7 @@ class AuthService {
 
   Future<void> sendPasswordResetEmail(String email) async {
     await _useTurkishAuthEmails();
-
-    final actionCodeSettings = ActionCodeSettings(
-      url: '$_passwordResetUrl?email=${Uri.encodeComponent(email)}',
-      handleCodeInApp: false,
-      androidPackageName: _appBundleId,
-      androidInstallApp: false,
-      iOSBundleId: _appBundleId,
-    );
-
-    await _auth.sendPasswordResetEmail(
-      email: email,
-      actionCodeSettings: actionCodeSettings,
-    );
+    await _auth.sendPasswordResetEmail(email: email);
   }
 
   Future<void> sendPhoneVerification({

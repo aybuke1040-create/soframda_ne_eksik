@@ -98,11 +98,16 @@ Ozellikle tekrar test edilecek akislar:
 ## 6. Guncelleme kontrolu
 
 - [ ] `app_config/client` dokumani guncel
+- [ ] `LatestVersion` alanlari yalnizca ilgili magazada surum tamamen yayina
+      girdikten sonra degistirildi (incelemede veya kademeli yayin baslamadan once
+      degistirilmedi)
 - [ ] `androidLatestVersion` dogru
-- [ ] `androidMinVersion` gerekiyorsa dogru
+- [ ] `androidMinVersion` yalnizca eski surumleri gercekten engellemek
+      isteniyorsa yukseltilmis
 - [ ] `androidStoreUrl` dogru
 - [ ] `iosLatestVersion` dogru
-- [ ] `iosMinVersion` gerekiyorsa dogru
+- [ ] `iosMinVersion` yalnizca eski surumleri gercekten engellemek isteniyorsa
+      yukseltilmis
 - [ ] `iosStoreUrl` dogru
 - [ ] uygulama acilinca update dialog beklendigi gibi cikiyor
 

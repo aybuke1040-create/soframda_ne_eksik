@@ -3,36 +3,35 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/components/site-config";
 
 export const metadata: Metadata = {
-  title: "Şifre Sıfırlama",
+  title: "E-posta Doğrulama",
   robots: { index: false, follow: false },
 };
 
-export default function ResetPasswordPage() {
+export default function VerifyEmailPage() {
   return (
     <div className="section-shell py-16 sm:py-20">
       <div className="mx-auto max-w-2xl rounded-[32px] border border-plum-100 bg-white p-6 shadow-sm sm:p-10">
         <p className="text-xs font-black uppercase tracking-[0.24em] text-plum-700">
-          Şifre Sıfırlama
+          E-posta Doğrulama
         </p>
         <h1 className="mt-3 text-3xl font-black tracking-tight text-ink sm:text-4xl">
-          Güvenli sıfırlama bağlantısını uygulamadan iste
+          E-posta adresini güvenle doğrula
         </h1>
         <p className="mt-4 text-base leading-8 text-slate-600">
-          Ben Yaparım uygulamasındaki “Şifremi Unuttum” seçeneğini kullan.
-          Firebase sana şifreni güvenli ekranında yenileyebileceğin tek kullanımlık
-          bir bağlantı gönderecek.
+          E-postandaki Firebase doğrulama bağlantısı işlemi güvenli ekranda
+          tamamlar. Doğrulama başarılı olduktan sonra Ben Yaparım uygulamasına
+          dönüp giriş yapabilirsin.
         </p>
         <div className="mt-7 rounded-3xl bg-slate-50 p-5 text-sm leading-7 text-slate-600">
-          E-posta gelmezse spam veya gereksiz klasörünü kontrol et. Eski bir
-          bağlantı açtıysan uygulamadan yenisini iste; güvenlik için eski
-          bağlantılar bir süre sonra geçersiz olur.
+          Bağlantı kullanılamıyorsa süresi dolmuş veya daha önce kullanılmış
+          olabilir. Uygulamadan yeniden doğrulama e-postası iste.
         </div>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/download"
             className="inline-flex items-center justify-center rounded-full bg-plum-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-plum-800"
           >
-            Uygulamayı indir
+            Uygulamaya dön
           </Link>
           <a
             href={`mailto:${siteConfig.supportEmail}`}
