@@ -876,14 +876,9 @@ exports.reportContent = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "Missing report details");
   }
 
-  if (confirmed !== true) {
-    throw new HttpsError(
-        "failed-precondition",
-        "Report confirmation is required",
-    );
-  }
-
+  const isConfirmedClient = confirmed === true;
   if (
+    isConfirmedClient &&
     !/^[A-Za-z0-9_-]{16,100}$/.test(normalizedClientRequestId)
   ) {
     throw new HttpsError(
@@ -915,9 +910,22 @@ exports.reportContent = onCall(async (request) => {
     }
   }
 
+  // Store clients receive the explicit confirmation flow with the next release.
+  // Until then, group identical legacy requests into a ten-minute window so the
+  // currently published app keeps reporting without creating repeat alerts.
+  const requestIdentity = isConfirmedClient ?
+    normalizedClientRequestId :
+    [
+      "legacy",
+      normalizedType,
+      normalizedContentId,
+      normalizedTargetUserId,
+      normalizedReason,
+      Math.floor(Date.now() / (10 * 60 * 1000)),
+    ].join(":");
   const reportId = crypto
       .createHash("sha256")
-      .update(`${uid}:${normalizedClientRequestId}`)
+      .update(`${uid}:${requestIdentity}`)
       .digest("hex");
   const reportRef = db.collection("moderation_reports").doc(reportId);
   const wasCreated = await db.runTransaction(async (tx) => {
@@ -934,7 +942,9 @@ exports.reportContent = onCall(async (request) => {
       reason: normalizedReason,
       details: String(details || "").trim().slice(0, 1000),
       metadata: isPlainObject(metadata) ? metadata : {},
-      clientRequestId: normalizedClientRequestId,
+      clientRequestId: isConfirmedClient ? normalizedClientRequestId : "",
+      explicitConfirmation: isConfirmedClient,
+      legacyClient: !isConfirmedClient,
       appCheckVerified: Boolean(request.app),
       status: "open",
       termsVersion: COMMUNITY_TERMS_VERSION,
