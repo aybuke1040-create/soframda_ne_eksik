@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/core/utils/moderation_report_confirmation.dart';
 import 'package:soframda_ne_eksik/presentation/screens/delivery/my_jobs_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/edit_profile_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/review/create_review_screen.dart';
@@ -101,10 +102,14 @@ class UserProfileScreen extends StatelessWidget {
     if (reason == null) {
       return;
     }
+    if (!await confirmModerationReport(context, reason: reason)) {
+      return;
+    }
 
     await ModerationService().reportUser(
       targetUserId: userId,
       reason: reason,
+      metadata: const {'surface': 'profile'},
     );
 
     if (!context.mounted) {
@@ -200,191 +205,193 @@ class UserProfileScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                Center(
-                  child: Container(
-                    width: 110,
-                    height: 110,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.grey.shade100,
-                      border: Border.all(color: Colors.grey.shade200),
+                    Center(
+                      child: Container(
+                        width: 110,
+                        height: 110,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey.shade100,
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: photo.toString().isEmpty
+                            ? const Icon(Icons.person, size: 50)
+                            : Image.network(
+                                photo,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.person, size: 50),
+                              ),
+                      ),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: photo.toString().isEmpty
-                        ? const Icon(Icons.person, size: 50)
-                        : Image.network(
-                            photo,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.person, size: 50),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  name,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .where('followingIds', arrayContains: userId)
-                      .snapshots(),
-                  builder: (context, followerSnapshot) {
-                    final followerCount =
-                        followerSnapshot.data?.docs.length ?? 0;
+                    const SizedBox(height: 12),
+                    Text(
+                      name,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .where('followingIds', arrayContains: userId)
+                          .snapshots(),
+                      builder: (context, followerSnapshot) {
+                        final followerCount =
+                            followerSnapshot.data?.docs.length ?? 0;
 
-                    return Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _statItem('\u0130\u015f', orders),
-                        _statItem('Puan', rating.toStringAsFixed(1)),
-                        _statItem('Takip\u00e7i', followerCount),
-                      ],
-                    );
-                  },
-                ),
-                if (!isCurrentUser &&
-                    currentUserId != null &&
-                    currentUserId != userId) ...[
-                  const SizedBox(height: 20),
-                  _FollowButton(
-                    currentUserId: currentUserId,
-                    targetUserId: userId,
-                    targetName: name,
-                    targetPhoto: photo,
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => UserListingsScreen(
-                            userId: userId,
-                            title: '$name ilanlar\u0131',
-                          ),
-                        ),
-                      );
-                    },
-                    child: const Text('\u0130lanlar\u0131n\u0131 G\u00f6r'),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () => _reportUser(context, name),
-                    icon: const Icon(Icons.flag_outlined),
-                    label: const Text('Kullanıcıyı Şikayet Et'),
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          isBlocked ? Colors.grey.shade700 : Colors.redAccent,
-                      foregroundColor: Colors.white,
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: [
+                            _statItem('\u0130\u015f', orders),
+                            _statItem('Puan', rating.toStringAsFixed(1)),
+                            _statItem('Takip\u00e7i', followerCount),
+                          ],
+                        );
+                      },
                     ),
-                    onPressed: isBlocked
-                        ? null
-                        : () => _blockUser(context, name),
-                    icon: const Icon(Icons.block),
-                    label: Text(
-                      isBlocked ? 'Bu kullanıcı engelli' : 'Kullanıcıyı Engelle',
+                    if (!isCurrentUser &&
+                        currentUserId != null &&
+                        currentUserId != userId) ...[
+                      const SizedBox(height: 20),
+                      _FollowButton(
+                        currentUserId: currentUserId,
+                        targetUserId: userId,
+                        targetName: name,
+                        targetPhoto: photo,
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => UserListingsScreen(
+                                userId: userId,
+                                title: '$name ilanlar\u0131',
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('\u0130lanlar\u0131n\u0131 G\u00f6r'),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () => _reportUser(context, name),
+                        icon: const Icon(Icons.flag_outlined),
+                        label: const Text('Kullanıcıyı Şikayet Et'),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isBlocked
+                              ? Colors.grey.shade700
+                              : Colors.redAccent,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed:
+                            isBlocked ? null : () => _blockUser(context, name),
+                        icon: const Icon(Icons.block),
+                        label: Text(
+                          isBlocked
+                              ? 'Bu kullanıcı engelli'
+                              : 'Kullanıcıyı Engelle',
+                        ),
+                      ),
+                    ],
+                    if (isCurrentUser) ...[
+                      const SizedBox(height: 30),
+                      _menuItem(
+                        icon: Icons.people_alt_outlined,
+                        title: 'Takip Ettiklerim',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const FollowingScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _menuItem(
+                        icon: Icons.restaurant_menu,
+                        title: '\u0130lanlar\u0131m',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => UserListingsScreen(
+                                userId: userId,
+                                title: 'İlanlarım',
+                                isCurrentUserListings: true,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _menuItem(
+                        icon: Icons.work,
+                        title: 'Benim  Yaptıklarım',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MyJobsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _menuItem(
+                        icon: Icons.gavel_outlined,
+                        title: 'Topluluk Kurallar\u0131',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const CommunityTermsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _menuItem(
+                        icon: Icons.block_outlined,
+                        title: 'Engelledi\u011fim Kullan\u0131c\u0131lar',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const BlockedUsersScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _menuItem(
+                        icon: Icons.settings,
+                        title: 'Ayarlar',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const SettingsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                    const SizedBox(height: 30),
+                    const Text(
+                      'Yorumlar',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
-                if (isCurrentUser) ...[
-                  const SizedBox(height: 30),
-                  _menuItem(
-                    icon: Icons.people_alt_outlined,
-                    title: 'Takip Ettiklerim',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const FollowingScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _menuItem(
-                    icon: Icons.restaurant_menu,
-                    title: '\u0130lanlar\u0131m',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => UserListingsScreen(
-                            userId: userId,
-                            title: 'İlanlarım',
-                            isCurrentUserListings: true,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                  _menuItem(
-                    icon: Icons.work,
-                    title: 'Benim  Yaptıklarım',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => MyJobsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _menuItem(
-                    icon: Icons.gavel_outlined,
-                    title: 'Topluluk Kurallar\u0131',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CommunityTermsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _menuItem(
-                    icon: Icons.block_outlined,
-                    title: 'Engelledi\u011fim Kullan\u0131c\u0131lar',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const BlockedUsersScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                  _menuItem(
-                    icon: Icons.settings,
-                    title: 'Ayarlar',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const SettingsScreen(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-                const SizedBox(height: 30),
-                const Text(
-                  'Yorumlar',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _ReviewsSection(userId: userId),
+                    const SizedBox(height: 12),
+                    _ReviewsSection(userId: userId),
                   ],
                 ),
               );

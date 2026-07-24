@@ -850,44 +850,117 @@ exports.reportContent = onCall(async (request) => {
     reason,
     details,
     metadata,
+    clientRequestId,
+    confirmed,
   } = request.data || {};
 
   if (!uid) {
     throw new HttpsError("unauthenticated", "User not logged in");
   }
 
+  const normalizedTargetUserId = String(targetUserId || "").trim();
   const normalizedType = String(contentType || "").trim();
+  const normalizedContentId = String(contentId || "").trim();
   const normalizedReason = String(reason || "").trim();
-  if (!normalizedType || !normalizedReason) {
+  const normalizedClientRequestId = String(clientRequestId || "").trim();
+  const allowedContentTypes = new Set(["user", "request"]);
+
+  if (
+    !allowedContentTypes.has(normalizedType) ||
+    !normalizedContentId ||
+    !normalizedTargetUserId ||
+    normalizedTargetUserId === uid ||
+    !normalizedReason ||
+    normalizedReason.length > 120
+  ) {
     throw new HttpsError("invalid-argument", "Missing report details");
   }
 
-  const reportRef = db.collection("moderation_reports").doc();
-  await reportRef.set({
-    reporterId: uid,
-    targetUserId: String(targetUserId || "").trim(),
-    contentType: normalizedType,
-    contentId: String(contentId || "").trim(),
-    reason: normalizedReason,
-    details: String(details || "").trim(),
-    metadata: metadata || {},
-    status: "open",
-    termsVersion: COMMUNITY_TERMS_VERSION,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    reviewDeadlineAt: admin.firestore.Timestamp.fromDate(
-      new Date(Date.now() + 24 * 60 * 60 * 1000),
+  if (confirmed !== true) {
+    throw new HttpsError(
+        "failed-precondition",
+        "Report confirmation is required",
+    );
+  }
+
+  if (
+    !/^[A-Za-z0-9_-]{16,100}$/.test(normalizedClientRequestId)
+  ) {
+    throw new HttpsError(
+        "invalid-argument",
+        "Invalid report request id",
+    );
+  }
+
+  if (normalizedType === "user" && normalizedContentId !== normalizedTargetUserId) {
+    throw new HttpsError("invalid-argument", "Invalid reported user");
+  }
+
+  if (normalizedType === "request") {
+    const contentSnapshot = await db
+        .collection("requests")
+        .doc(normalizedContentId)
+        .get();
+    const contentOwnerId = String(contentSnapshot.data()?.ownerId || "").trim();
+    if (!contentSnapshot.exists || contentOwnerId !== normalizedTargetUserId) {
+      throw new HttpsError("not-found", "Reported request was not found");
+    }
+  } else {
+    const targetSnapshot = await db
+        .collection("users")
+        .doc(normalizedTargetUserId)
+        .get();
+    if (!targetSnapshot.exists) {
+      throw new HttpsError("not-found", "Reported user was not found");
+    }
+  }
+
+  const reportId = crypto
+      .createHash("sha256")
+      .update(`${uid}:${normalizedClientRequestId}`)
+      .digest("hex");
+  const reportRef = db.collection("moderation_reports").doc(reportId);
+  const wasCreated = await db.runTransaction(async (tx) => {
+    const existingReport = await tx.get(reportRef);
+    if (existingReport.exists) {
+      return false;
+    }
+
+    tx.create(reportRef, {
+      reporterId: uid,
+      targetUserId: normalizedTargetUserId,
+      contentType: normalizedType,
+      contentId: normalizedContentId,
+      reason: normalizedReason,
+      details: String(details || "").trim().slice(0, 1000),
+      metadata: isPlainObject(metadata) ? metadata : {},
+      clientRequestId: normalizedClientRequestId,
+      appCheckVerified: Boolean(request.app),
+      status: "open",
+      termsVersion: COMMUNITY_TERMS_VERSION,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      reviewDeadlineAt: admin.firestore.Timestamp.fromDate(
+          new Date(Date.now() + 24 * 60 * 60 * 1000),
       ),
+    });
+    return true;
   });
 
-  await notifyModerationAdmins({
+  if (wasCreated) {
+    await notifyModerationAdmins({
+      reportId: reportRef.id,
+      reporterId: uid,
+      targetUserId: normalizedTargetUserId,
+      contentType: normalizedType,
+      reason: normalizedReason,
+    });
+  }
+
+  return {
+    success: true,
     reportId: reportRef.id,
-    reporterId: uid,
-    targetUserId: String(targetUserId || "").trim(),
-    contentType: normalizedType,
-    reason: normalizedReason,
-  });
-
-  return {success: true, reportId: reportRef.id};
+    duplicate: !wasCreated,
+  };
 });
 
 exports.blockUser = onCall(async (request) => {
@@ -905,8 +978,6 @@ exports.blockUser = onCall(async (request) => {
 
   const accountRef = getUserAccountRef(uid);
   const blockRef = getUserBlockRef(uid, normalizedTargetUserId);
-  const reportRef = db.collection("moderation_reports").doc();
-
   const batch = db.batch();
   batch.set(blockRef, {
     blockedUserId: normalizedTargetUserId,
@@ -922,20 +993,6 @@ exports.blockUser = onCall(async (request) => {
         normalizedTargetUserId,
     ),
   }, {merge: true});
-  batch.set(reportRef, {
-    reporterId: uid,
-    targetUserId: normalizedTargetUserId,
-    contentType: "user_block",
-    contentId: normalizedTargetUserId,
-    reason: String(reason || "blocked_user").trim(),
-    details: String(details || "").trim(),
-    status: "open",
-    termsVersion: COMMUNITY_TERMS_VERSION,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-    reviewDeadlineAt: admin.firestore.Timestamp.fromDate(
-        new Date(Date.now() + 24 * 60 * 60 * 1000),
-    ),
-  });
   await batch.commit();
 
   return {success: true};
@@ -2494,6 +2551,14 @@ function isValidHttpUrl(value) {
   }
 }
 
+function isPlainObject(value) {
+  return Boolean(
+      value &&
+      typeof value === "object" &&
+      !Array.isArray(value),
+  );
+}
+
 async function notifyModerationAdmins({
   reportId,
   reporterId,
@@ -2512,7 +2577,11 @@ async function notifyModerationAdmins({
   const batch = db.batch();
 
   for (const adminUserId of adminUserIds) {
-    const notificationRef = db.collection("notifications").doc();
+    const notificationId = crypto
+        .createHash("sha256")
+        .update(`moderation:${reportId}:${adminUserId}`)
+        .digest("hex");
+    const notificationRef = db.collection("notifications").doc(notificationId);
     batch.set(notificationRef, {
       receiverId: adminUserId,
       title: "Yeni şikayet bildirimi",

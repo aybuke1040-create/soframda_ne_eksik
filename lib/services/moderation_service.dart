@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,11 +11,15 @@ class ModerationService {
 
   String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
-  DocumentReference<Map<String, dynamic>> get _accountRef => _db
-      .collection('users')
-      .doc(_uid)
-      .collection('private')
-      .doc('account');
+  String _createClientRequestId() {
+    final random = Random.secure();
+    return List<int>.generate(24, (_) => random.nextInt(256))
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
+  DocumentReference<Map<String, dynamic>> get _accountRef =>
+      _db.collection('users').doc(_uid).collection('private').doc('account');
 
   CollectionReference<Map<String, dynamic>> get _blocksRef => _db
       .collection('users')
@@ -75,6 +81,8 @@ class ModerationService {
       'reason': reason,
       'details': details,
       'metadata': metadata ?? const <String, dynamic>{},
+      'confirmed': true,
+      'clientRequestId': _createClientRequestId(),
     });
   }
 
@@ -93,6 +101,8 @@ class ModerationService {
       'reason': reason,
       'details': details,
       'metadata': metadata ?? const <String, dynamic>{},
+      'confirmed': true,
+      'clientRequestId': _createClientRequestId(),
     });
   }
 

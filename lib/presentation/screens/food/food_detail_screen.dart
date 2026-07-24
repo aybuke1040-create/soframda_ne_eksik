@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/core/utils/moderation_report_confirmation.dart';
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/profile_screen.dart';
@@ -188,6 +189,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
   Future<void> _reportRequest() async {
     final reason = await _pickModerationReason();
     if (reason == null) return;
+    if (!await confirmModerationReport(context, reason: reason)) return;
 
     await ModerationService().reportRequest(
       requestId: widget.requestId,

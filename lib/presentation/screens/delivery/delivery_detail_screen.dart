@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/core/utils/moderation_report_confirmation.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/core/utils/date_format_utils.dart';
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
@@ -64,6 +65,7 @@ class DeliveryDetailScreen extends StatelessWidget {
       BuildContext context, String ownerId, String title) async {
     final reason = await _pickModerationReason(context);
     if (reason == null) return;
+    if (!await confirmModerationReport(context, reason: reason)) return;
 
     await ModerationService().reportRequest(
       requestId: requestId,

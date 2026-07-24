@@ -1,7 +1,8 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soframda_ne_eksik/core/utils/moderation_report_confirmation.dart';
 import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/chat_service.dart';
@@ -99,10 +100,14 @@ class _ChatScreenState extends State<ChatScreen> {
     if (reason == null) {
       return;
     }
+    if (!await confirmModerationReport(context, reason: reason)) {
+      return;
+    }
 
     await ModerationService().reportUser(
       targetUserId: otherUserId,
       reason: reason,
+      metadata: const {'surface': 'chat'},
     );
 
     if (!mounted) {
@@ -141,8 +146,7 @@ class _ChatScreenState extends State<ChatScreen> {
     await ActionFeedbackService.show(
       context,
       title: 'Kullanıcı engellendi',
-      message:
-          '$otherUserName artık akışında ve mesaj listende görünmeyecek.',
+      message: '$otherUserName artık akışında ve mesaj listende görünmeyecek.',
       icon: Icons.block_rounded,
     );
     Navigator.pop(context);
@@ -542,8 +546,8 @@ class _ChatScreenState extends State<ChatScreen> {
             stream: ModerationService().watchBlockedUserIds(),
             builder: (context, snapshot) {
               final blockedIds = snapshot.data ?? const <String>{};
-              final isBlocked = otherUserId.isNotEmpty &&
-                  blockedIds.contains(otherUserId);
+              final isBlocked =
+                  otherUserId.isNotEmpty && blockedIds.contains(otherUserId);
 
               return PopupMenuButton<String>(
                 onSelected: (value) async {
@@ -565,9 +569,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   PopupMenuItem<String>(
                     value: isBlocked ? 'unblock' : 'block',
                     child: Text(
-                      isBlocked
-                          ? 'Engeli Kaldır'
-                          : 'Kullanıcıyı Engelle',
+                      isBlocked ? 'Engeli Kaldır' : 'Kullanıcıyı Engelle',
                     ),
                   ),
                 ],
@@ -625,8 +627,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 6),
-                                 const Text(
-                                   'Gönderiliyor...',
+                                const Text(
+                                  'Gönderiliyor...',
                                   style: TextStyle(
                                     color: Colors.white70,
                                     fontSize: 11,

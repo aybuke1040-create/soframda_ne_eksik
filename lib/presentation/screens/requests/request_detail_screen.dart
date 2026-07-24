@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:soframda_ne_eksik/core/localization/app_locale_scope.dart';
 import 'package:soframda_ne_eksik/core/utils/date_format_utils.dart';
+import 'package:soframda_ne_eksik/core/utils/moderation_report_confirmation.dart';
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/profile_screen.dart';
@@ -75,11 +76,15 @@ class RequestDetailScreen extends StatelessWidget {
     if (reason == null) {
       return;
     }
+    if (!await confirmModerationReport(context, reason: reason)) {
+      return;
+    }
 
     await ModerationService().reportRequest(
       requestId: requestId,
       ownerId: ownerId,
       reason: reason,
+      metadata: const {'surface': 'request_detail'},
     );
 
     if (!context.mounted) {
