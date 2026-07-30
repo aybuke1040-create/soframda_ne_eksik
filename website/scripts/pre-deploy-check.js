@@ -117,6 +117,12 @@ function checkSeoFiles() {
     ["Meta Pixel bileseni bagli", layout.includes("MetaPixel")],
     ["Robots sitemap bildiriyor", robots.includes("sitemap")],
     ["Sitemap ana rotaları içeriyor", sitemap.includes("/download") && sitemap.includes("/privacy")],
+    [
+      "www alan adı ana domaine yönlendiriliyor",
+      vercel.includes('"value": "www.benyaparimci.com"') &&
+        vercel.includes('"destination": "https://benyaparimci.com/:path*"') &&
+        vercel.includes('"permanent": true')
+    ],
     ["Vercel güvenlik headerları tanımlı", vercel.includes("Strict-Transport-Security") && vercel.includes("Content-Security-Policy")]
   ];
 

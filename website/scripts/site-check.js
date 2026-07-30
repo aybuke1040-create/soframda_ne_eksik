@@ -112,6 +112,54 @@ function checkCertificate() {
   });
 }
 
+function checkWwwRedirect(path, expectedUrl) {
+  const sourceUrl = new URL(path, "https://www.benyaparimci.com");
+
+  return new Promise((resolve) => {
+    const request = https.get(
+      sourceUrl,
+      {
+        timeout: 15000,
+        headers: {
+          "User-Agent": "BenYaparimSiteCheck/1.0"
+        }
+      },
+      (response) => {
+        response.resume();
+        const location = response.headers.location
+          ? new URL(response.headers.location, sourceUrl).toString()
+          : "";
+
+        resolve({
+          ok:
+            response.statusCode >= 300 &&
+            response.statusCode < 400 &&
+            location === expectedUrl,
+          status: response.statusCode,
+          location,
+          sourceUrl: sourceUrl.toString(),
+          expectedUrl
+        });
+      }
+    );
+
+    request.on("timeout", () => {
+      request.destroy(new Error("Request timeout"));
+    });
+
+    request.on("error", (error) => {
+      resolve({
+        ok: false,
+        status: "ERR",
+        location: "",
+        sourceUrl: sourceUrl.toString(),
+        expectedUrl,
+        error: error.message
+      });
+    });
+  });
+}
+
 function mark(ok) {
   return ok ? "[OK]" : "[FAIL]";
 }
@@ -150,6 +198,26 @@ async function main() {
 
     if (page.path === "/") {
       homeHeaders = result.headers;
+    }
+  }
+
+  const wwwRedirects = await Promise.all([
+    checkWwwRedirect("/", "https://benyaparimci.com/"),
+    checkWwwRedirect(
+      "/privacy?source=search-console",
+      "https://benyaparimci.com/privacy?source=search-console"
+    )
+  ]);
+
+  for (const wwwRedirect of wwwRedirects) {
+    failed += wwwRedirect.ok ? 0 : 1;
+    console.log(
+      `${mark(wwwRedirect.ok)} www yönlendirmesi - ${wwwRedirect.status} - ${wwwRedirect.sourceUrl}`
+    );
+    console.log(`     Hedef: ${wwwRedirect.location || "Bulunamadı"}`);
+
+    if (wwwRedirect.error) {
+      console.log(`     Hata: ${wwwRedirect.error}`);
     }
   }
 
