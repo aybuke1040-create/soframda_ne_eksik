@@ -33,12 +33,12 @@ export const metadata: Metadata = {
   appLinks: {
     android: {
       package: "com.benyaparim.app",
-      app_name: "Ben YaparÄ±m",
+      app_name: "Ben Yaparım",
       url: siteConfig.appLinks.android
     },
     ios: {
       app_store_id: "6762226701",
-      app_name: "Ben YaparÄ±m",
+      app_name: "Ben Yaparım",
       url: siteConfig.appLinks.ios
     }
   },

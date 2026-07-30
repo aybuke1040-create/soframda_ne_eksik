@@ -3,7 +3,8 @@ import Link from "next/link";
 import { DownloadButtons } from "@/components/DownloadButtons";
 import { PhoneMockup } from "@/components/PhoneMockup";
 import { SectionIntro } from "@/components/SectionIntro";
-import { categories, faqs, siteConfig, steps, trustPoints } from "@/components/site-config";
+import { landingPages } from "@/components/landing-pages";
+import { faqs, siteConfig, steps, trustPoints } from "@/components/site-config";
 
 const quickHighlights = ["Ücretsiz kayıt", "Hızlı teklif akışı", "Mahallene yakın hizmetler"] as const;
 
@@ -48,7 +49,7 @@ export default function HomePage() {
   const mobileApplicationSchema = {
     "@context": "https://schema.org",
     "@type": "MobileApplication",
-    name: "Ben YaparÄ±m",
+    name: "Ben Yaparım",
     operatingSystem: "Android, iOS",
     applicationCategory: "LifestyleApplication",
     url: siteConfig.domain,
@@ -185,19 +186,22 @@ export default function HomePage() {
             title="Tek bir ihtiyaç için değil, hayatın farklı anları için tasarlandı."
             copy="Ev davetlerinden günlük ihtiyaçlara, yaratıcı işlerden hazır yemek siparişine kadar farklı beklentileri tek platformda bir araya getirir."
           />
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {categories.map((category, index) => (
-              <div
-                key={category}
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {landingPages.map((category, index) => (
+              <Link
+                key={category.slug}
+                href={`/hizmetler/${category.slug}`}
                 className="rounded-4xl border border-white/70 bg-white p-5 shadow-sm transition hover:-translate-y-1"
               >
                 <p className="text-sm font-black uppercase tracking-[0.18em] text-plum-500">0{index + 1}</p>
-                <h3 className="mt-4 text-2xl font-black text-ink">{category}</h3>
+                <h3 className="mt-4 text-2xl font-black text-ink">{category.name}</h3>
                 <p className="mt-3 text-sm leading-6 text-slate-600">
-                  İhtiyacını paylaş, sana uygun hizmet verenlerle hızlıca bağlantı kur ve süreci
-                  tek yerden yönet.
+                  {category.metaDescription}
                 </p>
-              </div>
+                <span className="mt-5 inline-flex text-sm font-black text-plum-700">
+                  Ayrıntıları gör →
+                </span>
+              </Link>
             ))}
           </div>
         </div>

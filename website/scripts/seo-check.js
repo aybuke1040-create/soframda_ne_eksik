@@ -84,6 +84,9 @@ function localSeoChecks(config) {
   const robots = read("app/robots.ts");
   const sitemap = read("app/sitemap.ts");
   const manifest = read("app/manifest.ts");
+  const landingHub = read("app/hizmetler/page.tsx");
+  const landingDetail = read("app/hizmetler/[slug]/page.tsx");
+  const landingData = read("components/landing-pages.ts");
 
   let failed = 0;
 
@@ -106,6 +109,17 @@ function localSeoChecks(config) {
   failed += result("Robots sitemap bildiriyor", robots.includes("sitemap"));
   failed += result("Robots login/messages engelliyor", robots.includes("/login") && robots.includes("/messages"));
   failed += result("Sitemap kritik rotaları içeriyor", sitemap.includes("/download") && sitemap.includes("/privacy") && sitemap.includes("/support"));
+  failed += result("Sitemap hizmet rotalarını üretiyor", sitemap.includes("/hizmetler") && sitemap.includes("landingPages"));
+  failed += result("Hizmet merkezi ItemList schema içeriyor", landingHub.includes('"@type": "ItemList"'));
+  failed += result("Kategori sayfaları Service schema içeriyor", landingDetail.includes('"@type": "Service"'));
+  failed += result("Kategori sayfaları Breadcrumb schema içeriyor", landingDetail.includes('"@type": "BreadcrumbList"'));
+  failed += result("Kategori sayfaları FAQ schema içeriyor", landingDetail.includes('"@type": "FAQPage"'));
+  failed += result(
+    "Beş ana kategori tanımlı",
+    ["ev-yemegi", "kucuk-tasima", "organizasyon", "pasta", "ikramlik"].every((slug) =>
+      landingData.includes(`slug: "${slug}"`)
+    )
+  );
   failed += result("Manifest isim ve tema rengi içeriyor", manifest.includes("name") && manifest.includes("theme_color"));
   failed += result("Logo var", exists("public/brand/logo.png"));
   failed += result("Sosyal paylaşım görseli var", exists("public/screens/request-feed.png"));
@@ -122,18 +136,21 @@ async function liveSeoChecks(config) {
   const robotsUrl = `${config.domain}/robots.txt`;
   const manifestUrl = `${config.domain}/manifest.webmanifest`;
   const homeUrl = `${config.domain}/`;
+  const servicesUrl = `${config.domain}/hizmetler/ev-yemegi`;
 
-  const [home, sitemap, robots, manifest] = await Promise.all([
+  const [home, sitemap, robots, manifest, services] = await Promise.all([
     request(homeUrl),
     request(sitemapUrl),
     request(robotsUrl),
-    request(manifestUrl)
+    request(manifestUrl),
+    request(servicesUrl)
   ]);
 
   failed += result("Ana sayfa erişilebilir", home.ok, `${home.status} ${homeUrl}`);
   failed += result("Sitemap erişilebilir", sitemap.ok, `${sitemap.status} ${sitemapUrl}`);
   failed += result("Sitemap urlset içeriyor", sitemap.body.includes("<urlset"));
   failed += result("Sitemap ana sayfayı içeriyor", sitemap.body.includes(`<loc>${config.domain}/</loc>`));
+  failed += result("Sitemap hizmet sayfalarını içeriyor", sitemap.body.includes(`<loc>${servicesUrl}</loc>`));
   failed += result("Robots erişilebilir", robots.ok, `${robots.status} ${robotsUrl}`);
   failed += result("Robots doğru sitemap bildiriyor", robots.body.includes(`Sitemap: ${sitemapUrl}`));
   failed += result("Manifest erişilebilir", manifest.ok, `${manifest.status} ${manifestUrl}`);
@@ -142,6 +159,9 @@ async function liveSeoChecks(config) {
   failed += result("Ana sayfada og:title var", home.body.includes('property="og:title"'));
   failed += result("Ana sayfada twitter:card var", home.body.includes('name="twitter:card"'));
   failed += result("Ana sayfada JSON-LD var", home.body.includes('application/ld+json'));
+  failed += result("Kategori landing page erişilebilir", services.ok, `${services.status} ${servicesUrl}`);
+  failed += result("Kategori landing page canonical içeriyor", services.body.includes(`href="${servicesUrl}"`));
+  failed += result("Kategori landing page JSON-LD içeriyor", services.body.includes('application/ld+json'));
 
   console.log("");
   return failed;

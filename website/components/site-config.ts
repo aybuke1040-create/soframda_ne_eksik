@@ -4,6 +4,7 @@ export const siteConfig = {
   supportEmail: "benyaparimci@gmail.com",
   nav: [
     { href: "/", label: "Ana Sayfa" },
+    { href: "/hizmetler", label: "Hizmetler" },
     { href: "/download", label: "Uygulamayı İndir" },
     { href: "/support", label: "Destek" },
     { href: "/terms", label: "Kullanım Koşulları" },
@@ -11,6 +12,7 @@ export const siteConfig = {
     { href: "/#sss", label: "S.S.S." }
   ],
   footerNav: [
+    { href: "/hizmetler", label: "Hizmetler" },
     { href: "/terms", label: "Kullanım Koşulları" },
     { href: "/privacy", label: "Gizlilik Politikası" },
     { href: "/support", label: "Destek" },
