@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 
 class FloatingCreditAnimation extends StatefulWidget {
   final String text;
+  final VoidCallback? onCompleted;
 
-  const FloatingCreditAnimation({super.key, required this.text});
+  const FloatingCreditAnimation({
+    super.key,
+    required this.text,
+    this.onCompleted,
+  });
 
   @override
   State<FloatingCreditAnimation> createState() =>
@@ -29,7 +34,7 @@ class _FloatingCreditAnimationState extends State<FloatingCreditAnimation>
     controller.forward();
 
     Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) widget.onCompleted?.call();
     });
   }
 

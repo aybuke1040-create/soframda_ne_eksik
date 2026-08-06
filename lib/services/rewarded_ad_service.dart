@@ -3,6 +3,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+enum RewardedAdShowStatus {
+  rewardEarned,
+  dismissedWithoutReward,
+  failedToShow,
+  unavailable,
+}
+
 class RewardedAdService {
   RewardedAdService._();
 
@@ -62,12 +69,12 @@ class RewardedAdService {
     );
   }
 
-  Future<bool> showPreloadedAd({
+  Future<RewardedAdShowStatus> showPreloadedAd({
     required String userId,
     required String sessionId,
   }) async {
     final ad = _rewardedAd;
-    if (ad == null) return false;
+    if (ad == null) return RewardedAdShowStatus.unavailable;
 
     _rewardedAd = null;
     ad.setServerSideOptions(
@@ -76,32 +83,59 @@ class RewardedAdService {
         customData: sessionId,
       ),
     );
-    final completer = Completer<bool>();
+    final completer = Completer<RewardedAdShowStatus>();
     var rewardEarned = false;
+    var adDismissed = false;
+    Timer? rewardCallbackGraceTimer;
+
+    void complete(RewardedAdShowStatus status) {
+      if (completer.isCompleted) return;
+      rewardCallbackGraceTimer?.cancel();
+      completer.complete(status);
+    }
 
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
         unawaited(preload());
-        if (!completer.isCompleted) completer.complete(rewardEarned);
+        adDismissed = true;
+        if (rewardEarned) {
+          complete(RewardedAdShowStatus.rewardEarned);
+          return;
+        }
+
+        // Some devices deliver onUserEarnedReward just after the dismiss
+        // callback. Preloading still starts immediately; only the local
+        // completion decision receives this short grace period.
+        rewardCallbackGraceTimer = Timer(const Duration(seconds: 1), () {
+          complete(
+            rewardEarned
+                ? RewardedAdShowStatus.rewardEarned
+                : RewardedAdShowStatus.dismissedWithoutReward,
+          );
+        });
       },
       onAdFailedToShowFullScreenContent: (ad, _) {
         ad.dispose();
         unawaited(preload());
-        if (!completer.isCompleted) completer.complete(false);
+        complete(RewardedAdShowStatus.failedToShow);
       },
     );
     ad.show(
       onUserEarnedReward: (_, __) {
         rewardEarned = true;
+        if (adDismissed) {
+          complete(RewardedAdShowStatus.rewardEarned);
+        }
       },
     );
 
     return completer.future.timeout(
       const Duration(minutes: 2),
       onTimeout: () {
+        rewardCallbackGraceTimer?.cancel();
         ad.dispose();
-        return false;
+        return RewardedAdShowStatus.failedToShow;
       },
     );
   }

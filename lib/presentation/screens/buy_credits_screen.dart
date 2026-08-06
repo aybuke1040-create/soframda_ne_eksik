@@ -252,7 +252,7 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
       final sessionId = _rewardedAdSessionId;
       if (userId == null || sessionId == null) return;
 
-      final completed = await _rewardedAdService.showPreloadedAd(
+      final showStatus = await _rewardedAdService.showPreloadedAd(
         userId: userId,
         sessionId: sessionId,
       );
@@ -265,7 +265,27 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
       });
       unawaited(_prepareRewardedAd());
 
-      if (!completed) {
+      if (showStatus == RewardedAdShowStatus.unavailable ||
+          showStatus == RewardedAdShowStatus.failedToShow) {
+        await _showFeedback(
+          title: context.t('Reklam açılamadı', 'Ad could not be opened'),
+          message: context.t(
+            'Şu anda reklam gösterilemedi. Kısa süre sonra tekrar deneyebilirsin.',
+            'The ad could not be shown. Please try again shortly.',
+          ),
+          icon: Icons.error_outline_rounded,
+        );
+        return;
+      }
+
+      final result = await _creditService.waitForRewardedAdVerification(
+        previousStatus: currentStatus,
+        maxAttempts: showStatus == RewardedAdShowStatus.rewardEarned ? 20 : 5,
+      );
+      if (!mounted) return;
+
+      if (showStatus == RewardedAdShowStatus.dismissedWithoutReward &&
+          result.status == RewardedAdCreditStatus.unavailable) {
         await _showFeedback(
           title: context.t('Reklam tamamlanmadı', 'Ad was not completed'),
           message: context.t(
@@ -276,11 +296,6 @@ class _BuyCreditsScreenState extends State<BuyCreditsScreen>
         );
         return;
       }
-
-      final result = await _creditService.waitForRewardedAdVerification(
-        previousStatus: currentStatus,
-      );
-      if (!mounted) return;
 
       if (result.status == RewardedAdCreditStatus.rewardGranted) {
         await _showFeedback(

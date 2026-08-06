@@ -138,16 +138,16 @@ class CreditService {
 
   Future<RewardedAdCreditResult> waitForRewardedAdVerification({
     required RewardedAdCreditResult previousStatus,
+    int maxAttempts = 20,
   }) async {
-    for (var attempt = 0; attempt < 20; attempt++) {
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
       await Future<void>.delayed(const Duration(seconds: 1));
       final status = await getRewardedAdCreditStatus();
       if (status.status == RewardedAdCreditStatus.dailyLimitReached ||
           status.adsWatchedToday > previousStatus.adsWatchedToday ||
           status.dailyCreditsEarned > previousStatus.dailyCreditsEarned) {
         return RewardedAdCreditResult(
-          status: status.dailyCreditsEarned >
-                  previousStatus.dailyCreditsEarned
+          status: status.dailyCreditsEarned > previousStatus.dailyCreditsEarned
               ? RewardedAdCreditStatus.rewardGranted
               : status.status,
           adsWatchedToday: status.adsWatchedToday,
