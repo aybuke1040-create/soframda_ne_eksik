@@ -8,6 +8,7 @@ import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/profile_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/requests/create_request_screen.dart';
+import 'package:soframda_ne_eksik/presentation/widgets/listing_action_widgets.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/chat_service.dart';
 import 'package:soframda_ne_eksik/services/moderation_service.dart';
@@ -382,6 +383,13 @@ class RequestDetailScreen extends StatelessWidget {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 8),
+                      ListingReviewReminder(
+                        message: context.t(
+                          'Eşleştikten sonra değerlendirme yapmayı unutma.',
+                          "Don't forget to leave a review after you match.",
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       GridView.count(
                         crossAxisCount: 2,
@@ -468,13 +476,6 @@ class RequestDetailScreen extends StatelessWidget {
                                                 requestId: requestId,
                                                 ownerId: ownerId)));
                                   },
-                                ),
-                                _actionCard(
-                                  icon: Icons.flag_outlined,
-                                  title: context.t(
-                                      'İlanı Şikâyet Et', 'Report Listing'),
-                                  color: Colors.redAccent,
-                                  onTap: () => _reportRequest(context),
                                 ),
                               ],
                       ),
@@ -620,6 +621,14 @@ class RequestDetailScreen extends StatelessWidget {
                               }).toList(),
                             );
                           },
+                        ),
+                      ],
+                      if (!isOwner) ...[
+                        const SizedBox(height: 24),
+                        CompactListingReportButton(
+                          label:
+                              context.t('İlanı Şikâyet Et', 'Report Listing'),
+                          onPressed: () => _reportRequest(context),
                         ),
                       ],
                     ],

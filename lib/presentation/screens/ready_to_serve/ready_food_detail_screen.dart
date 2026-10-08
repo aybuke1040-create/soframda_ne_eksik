@@ -10,6 +10,7 @@ import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/profile_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/requests/create_request_screen.dart';
 import 'package:soframda_ne_eksik/presentation/widgets/floating_credit_animation.dart';
+import 'package:soframda_ne_eksik/presentation/widgets/listing_action_widgets.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/chat_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
@@ -415,17 +416,11 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                   if (!isOwner)
                     PopupMenuButton<String>(
                       onSelected: (value) async {
-                        if (value == 'report') {
-                          await _reportRequest(ownerId, title);
-                        } else if (value == 'block') {
+                        if (value == 'block') {
                           await _blockOwner(ownerId);
                         }
                       },
                       itemBuilder: (_) => const [
-                        PopupMenuItem<String>(
-                          value: 'report',
-                          child: Text('İlanı Şikâyet Et'),
-                        ),
                         PopupMenuItem<String>(
                           value: 'block',
                           child: Text('Kullanıcıyı Engelle'),
@@ -602,6 +597,11 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 8),
+                      const ListingReviewReminder(
+                        message:
+                            'Eşleştikten sonra değerlendirme yapmayı unutma.',
+                      ),
                       const SizedBox(height: 12),
                       GridView.count(
                         shrinkWrap: true,
@@ -681,6 +681,13 @@ class _ReadyFoodDetailScreenState extends State<ReadyFoodDetailScreen> {
                                 ),
                               ],
                       ),
+                      if (!isOwner) ...[
+                        const SizedBox(height: 24),
+                        CompactListingReportButton(
+                          label: 'İlanı Şikâyet Et',
+                          onPressed: () => _reportRequest(ownerId, title),
+                        ),
+                      ],
                     ],
                   ),
                 ),

@@ -7,6 +7,7 @@ import 'package:soframda_ne_eksik/core/utils/date_format_utils.dart';
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/delivery/create_delivery_request_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.dart';
+import 'package:soframda_ne_eksik/presentation/widgets/listing_action_widgets.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/chat_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
@@ -290,18 +291,11 @@ class DeliveryDetailScreen extends StatelessWidget {
               if (!isOwner)
                 PopupMenuButton<String>(
                   onSelected: (value) async {
-                    if (value == 'report') {
-                      await _reportRequest(
-                          context, ownerId, (data['title'] ?? '').toString());
-                    } else if (value == 'block') {
+                    if (value == 'block') {
                       await _blockOwner(context, ownerId);
                     }
                   },
                   itemBuilder: (_) => const [
-                    PopupMenuItem<String>(
-                      value: 'report',
-                      child: Text('İlanı Şikâyet Et'),
-                    ),
                     PopupMenuItem<String>(
                       value: 'block',
                       child: Text('Kullanıcıyı Engelle'),
@@ -380,6 +374,13 @@ class DeliveryDetailScreen extends StatelessWidget {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 8),
+                        ListingReviewReminder(
+                          message: context.t(
+                            'Eşleştikten sonra değerlendirme yapmayı unutma.',
+                            "Don't forget to leave a review after you match.",
+                          ),
+                        ),
                         const SizedBox(height: 20),
                         Wrap(
                           spacing: 12,
@@ -579,6 +580,15 @@ class DeliveryDetailScreen extends StatelessWidget {
                                 }).toList(),
                               );
                             },
+                          ),
+                        ],
+                        if (!isOwner) ...[
+                          const SizedBox(height: 24),
+                          CompactListingReportButton(
+                            label:
+                                context.t('İlanı Şikâyet Et', 'Report Listing'),
+                            onPressed: () => _reportRequest(context, ownerId,
+                                (data['title'] ?? '').toString()),
                           ),
                         ],
                       ],

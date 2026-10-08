@@ -5,6 +5,7 @@ import 'package:soframda_ne_eksik/core/utils/moderation_report_confirmation.dart
 import 'package:soframda_ne_eksik/presentation/screens/chat/chat_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/offers/send_offer_screen.dart';
 import 'package:soframda_ne_eksik/presentation/screens/profile/profile_screen.dart';
+import 'package:soframda_ne_eksik/presentation/widgets/listing_action_widgets.dart';
 import 'package:soframda_ne_eksik/services/action_feedback_service.dart';
 import 'package:soframda_ne_eksik/services/chat_service.dart';
 import 'package:soframda_ne_eksik/services/credit_service.dart';
@@ -295,17 +296,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
               if (!isOwner)
                 PopupMenuButton<String>(
                   onSelected: (value) async {
-                    if (value == 'report') {
-                      await _reportRequest();
-                    } else if (value == 'block') {
+                    if (value == 'block') {
                       await _blockOwner();
                     }
                   },
                   itemBuilder: (_) => const [
-                    PopupMenuItem<String>(
-                      value: 'report',
-                      child: Text('İlanı Şikâyet Et'),
-                    ),
                     PopupMenuItem<String>(
                       value: 'block',
                       child: Text('Kullanıcıyı Engelle'),
@@ -360,6 +355,17 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
+                      const Text(
+                        'Aksiyonlar',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      const ListingReviewReminder(
+                        message:
+                            'Eşleştikten sonra değerlendirme yapmayı unutma.',
+                      ),
+                      const SizedBox(height: 12),
                       GridView.count(
                         crossAxisCount: 2,
                         shrinkWrap: true,
@@ -452,6 +458,13 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                                 ),
                               ],
                       ),
+                      if (!isOwner) ...[
+                        const SizedBox(height: 24),
+                        CompactListingReportButton(
+                          label: 'İlanı Şikâyet Et',
+                          onPressed: _reportRequest,
+                        ),
+                      ],
                     ],
                   ),
                 ),
