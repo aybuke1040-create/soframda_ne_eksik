@@ -455,10 +455,12 @@ workflows:
 
       - name: Build iOS IPA
         script: |
+          IOS_BUILD_NAME=$(grep '^version:' pubspec.yaml | sed 's/version: //' | sed 's/+.*//')
           IOS_BUILD_NUMBER=$(grep '^version:' pubspec.yaml | sed 's/.*+//')
-          echo "Using iOS build number: $IOS_BUILD_NUMBER"
+          echo "Using iOS version: $IOS_BUILD_NAME ($IOS_BUILD_NUMBER)"
           flutter build ipa \
             --release \
+            --build-name=$IOS_BUILD_NAME \
             --build-number=$IOS_BUILD_NUMBER \
             --export-options-plist=/Users/builder/export_options.plist
 
