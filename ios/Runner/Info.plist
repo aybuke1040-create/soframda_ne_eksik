@@ -3,7 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>tr</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>tr</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>Ben Yaparım</string>
 	<key>CFBundleExecutable</key>
@@ -17,10 +21,12 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>app-1-665265458229-ios-196ba150fccbb03380f57c</string>
+				<string>com.googleusercontent.apps.665265458229-gbev5kdt8novlrtfura1ours77jjvh6s</string>
 			</array>
 		</dict>
 	</array>
+	<key>GIDClientID</key>
+	<string>665265458229-gbev5kdt8novlrtfura1ours77jjvh6s.apps.googleusercontent.com</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
